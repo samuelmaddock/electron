@@ -134,7 +134,8 @@ URLRequestContextGetter::URLRequestContextGetter(
       in_memory_(in_memory),
       io_task_runner_(io_task_runner),
       protocol_interceptors_(std::move(protocol_interceptors)),
-      job_factory_(nullptr) {
+      job_factory_(nullptr),
+      context_shutting_down_(false) {
   // Must first be created on the UI thread.
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
 
@@ -152,6 +153,14 @@ URLRequestContextGetter::URLRequestContextGetter(
 }
 
 URLRequestContextGetter::~URLRequestContextGetter() {
+  base::debug::LeakTracker<URLRequestContextGetter>::CheckForLeaks();
+}
+
+void URLRequestContextGetter::NotifyContextShutdownOnIO() {
+  url_request_context_ = nullptr;
+  cookie_change_sub_.reset();
+  context_shutting_down_ = true;
+  net::URLRequestContextGetter::NotifyContextShuttingDown();
 }
 
 void URLRequestContextGetter::OnCookieChanged(
@@ -159,7 +168,7 @@ void URLRequestContextGetter::OnCookieChanged(
     net::CookieStore::ChangeCause cause) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::IO);
 
-  if (!delegate_)
+  if (!delegate_ && !context_shutting_down_)
     return;
 
   content::BrowserThread::PostTask(
@@ -175,6 +184,9 @@ net::HostResolver* URLRequestContextGetter::host_resolver() {
 
 net::URLRequestContext* URLRequestContextGetter::GetURLRequestContext() {
   DCHECK_CURRENTLY_ON(BrowserThread::IO);
+
+  if (context_shutting_down_)
+    return nullptr;
 
   if (!url_request_context_.get()) {
     ct_delegate_.reset(new RequireCTDelegate);

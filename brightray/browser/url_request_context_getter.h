@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "base/debug/leak_tracker.h"
 #include "base/files/file_path.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/content_browser_client.h"
@@ -85,6 +86,8 @@ class URLRequestContextGetter : public net::URLRequestContextGetter {
   net::HostResolver* host_resolver();
   net::URLRequestJobFactory* job_factory() const { return job_factory_; }
 
+  void NotifyContextShutdownOnIO();
+
  private:
   Delegate* delegate_;
 
@@ -109,6 +112,10 @@ class URLRequestContextGetter : public net::URLRequestContextGetter {
   content::URLRequestInterceptorScopedVector protocol_interceptors_;
 
   net::URLRequestJobFactory* job_factory_;  // weak ref
+
+  bool context_shutting_down_;
+
+  base::debug::LeakTracker<URLRequestContextGetter> leak_tracker_;
 
   DISALLOW_COPY_AND_ASSIGN(URLRequestContextGetter);
 };
