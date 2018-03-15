@@ -111,6 +111,12 @@ void WebContentsPreferences::AppendExtraCommandLineSwitches(
 
   base::DictionaryValue& web_preferences = self->web_preferences_;
 
+  // We are appending args to a webContents so let's save the current state
+  // of our preferences object so that during the lifetime of the WebContents
+  // we can fetch the options used to initally configure the WebContents
+  self->last_web_preferences_.Clear();
+  self->last_web_preferences_.MergeDictionary(&web_preferences);
+
   bool b;
   // Check if plugins are enabled.
   if (web_preferences.GetBoolean("plugins", &b) && b)
