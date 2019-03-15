@@ -6,33 +6,33 @@ type ChromeBrowserAction = typeof chrome.browserAction
 class BrowserAction implements ChromeBrowserAction {
   onClicked: chrome.browserAction.BrowserClickedEvent = new Event() as any
 
-  constructor(private extensionId: string) {
+  constructor (private extensionId: string) {
     // TODO: listen for browserAction clicked event
   }
 
-  enable(tabId?: number) {}
-  disable(tabId?: number) {}
+  enable (tabId?: number) {}
+  disable (tabId?: number) {}
 
-  getTitle(details: chrome.browserAction.TabDetails, callback: (result: string) => void) {
+  getTitle (details: chrome.browserAction.TabDetails, callback: (result: string) => void) {
     ipcRendererUtils.invoke<string>('CHROME_BROWSER_ACTION_GET_DETAIL', this.extensionId, 'title', details.tabId).then(callback)
   }
-  setTitle(details: chrome.browserAction.TitleDetails) {
+  setTitle (details: chrome.browserAction.TitleDetails) {
     ipcRendererUtils.invoke('CHROME_BROWSER_ACTION_SET_DETAILS', this.extensionId, details)
   }
 
-  getBadgeText(details: chrome.browserAction.TabDetails, callback: (result: string) => void) {}
-  setBadgeText(details: chrome.browserAction.BadgeTextDetails) {}
+  getBadgeText (details: chrome.browserAction.TabDetails, callback: (result: string) => void) {}
+  setBadgeText (details: chrome.browserAction.BadgeTextDetails) {}
 
-  getPopup(details: chrome.browserAction.TabDetails, callback: (result: string) => void) {}
-  setPopup(details: chrome.browserAction.PopupDetails) {}
+  getPopup (details: chrome.browserAction.TabDetails, callback: (result: string) => void) {}
+  setPopup (details: chrome.browserAction.PopupDetails) {}
 
-  getBadgeBackgroundColor(
+  getBadgeBackgroundColor (
     details: chrome.browserAction.TabDetails,
     callback: (result: chrome.browserAction.ColorArray) => void
   ) {}
-  setBadgeBackgroundColor(details: chrome.browserAction.BadgeBackgroundColorDetails) {}
+  setBadgeBackgroundColor (details: chrome.browserAction.BadgeBackgroundColorDetails) {}
 
-  setIcon(details: chrome.browserAction.TabIconDetails, callback?: Function) {}
+  setIcon (details: chrome.browserAction.TabIconDetails, callback?: Function) {}
 }
 
 export const setup = (extensionId: string) => {

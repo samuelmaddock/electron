@@ -32,7 +32,7 @@ type ExtensionMap = {
 class BrowserActions {
   private extensions: ExtensionMap = {}
 
-  private createTabDetail(extensionId: string, tabId: number) {
+  private createTabDetail (extensionId: string, tabId: number) {
     const ext = this.extensions[extensionId]!
     const tab = (ext.tabs[tabId] = {})
 
@@ -44,19 +44,19 @@ class BrowserActions {
     return tab
   }
 
-  setupExtension(extensionId: string, manifest: chrome.runtime.Manifest) {
+  setupExtension (extensionId: string, manifest: chrome.runtime.Manifest) {
     const { browser_action } = manifest
     if (browser_action) {
       const defaults = {
         title: browser_action.default_title,
         icon: browser_action.default_icon,
-        popup: browser_action.default_popup,
+        popup: browser_action.default_popup
       }
       this.extensions[extensionId] = { details: defaults, tabs: {} }
     }
   }
-  
-  setDetails(extensionId: string, { tabId, ...details }: Details) {
+
+  setDetails (extensionId: string, { tabId, ...details }: Details) {
     const ext = this.extensions[extensionId] || (this.extensions[extensionId] = { details: {}, tabs: {} })
     let target
     if (typeof tabId === 'number') {
@@ -67,7 +67,7 @@ class BrowserActions {
     Object.assign(target, details)
   }
 
-  getDetail(extensionId: string, detail: string, tabId?: number) {
+  getDetail (extensionId: string, detail: string, tabId?: number) {
     const ext = this.extensions[extensionId]
     if (!ext) return
     const target = typeof tabId === 'number' ? ext.tabs[tabId] : ext.details
@@ -76,14 +76,14 @@ class BrowserActions {
   }
 }
 
-export function setup() {
+export function setup () {
   const browserActions = new BrowserActions()
 
   // TODO: types
   app.on('chrome-extension-ready' as any, (info: any) => {
     browserActions.setupExtension(info.id, info.manifest)
   })
-  
+
   ipcMainInternal.on('CHROME_BROWSER_ACTION_SET_DETAILS', (event, extensionId, details) => {
     if (typeof extensionId === 'string' && typeof details === 'object') {
       browserActions.setDetails(extensionId, details)
@@ -100,6 +100,6 @@ export function setup() {
   ipcMainInternal.on('CHROME_BROWSER_ACTION_CLICKED', (event, extensionId) => {
     // TODO(samuelmaddock): ?
   })
-  
+
   return browserActions
 }
