@@ -7,11 +7,12 @@ const { remote } = require('electron')
 const { closeWindow } = require('./window-helpers')
 const { emittedOnce } = require('./events-helpers')
 
-const { BrowserWindow } = remote
+const { BrowserWindow, webContents } = remote
 
 describe('chrome api', () => {
   const fixtures = path.resolve(__dirname, 'fixtures')
   let w
+  let bg
 
   before(() => {
     BrowserWindow.addExtension(path.join(fixtures, 'extensions/chrome-api'))
@@ -25,9 +26,12 @@ describe('chrome api', () => {
     w = new BrowserWindow({
       show: false
     })
+    bg = webContents.getAllWebContents().find(wc => wc.getType() === 'backgroundPage')
   })
 
-  afterEach(() => closeWindow(w).then(() => { w = null }))
+  afterEach(() => closeWindow(w).then(() => { w = bg = null }))
+
+  const dispatchTest = (wc, name) => wc.executeJavaScript(`window.postMessage('${name}', '*')`)
 
   it('runtime.getManifest returns extension manifest', async () => {
     const actualManifest = (() => {
@@ -38,11 +42,19 @@ describe('chrome api', () => {
     w.loadURL('about:blank')
 
     const p = emittedOnce(w.webContents, 'console-message')
-    w.webContents.executeJavaScript(`window.postMessage('getManifest', '*')`)
+    dispatchTest(w.webContents, 'getManifest')
     const [,, manifestString] = await p
     const manifest = JSON.parse(manifestString)
 
     expect(manifest.name).to.equal(actualManifest.name)
     expect(manifest.content_scripts.length).to.equal(actualManifest.content_scripts.length)
+  })
+
+  it.only('browserAction can set and get title', async () => {
+    w.loadURL('about:blank')
+    const p = emittedOnce(bg, 'console-message')
+    dispatchTest(bg, 'browserActionTitle')
+    const [,, title] = await p
+    expect(title).to.equal('yeet')
   })
 })

@@ -46,6 +46,11 @@ declare namespace Electron {
     allFrames: boolean
   }
 
+  interface ExtensionInfo {
+    id: string
+    manifest: chrome.runtime.Manifest
+  }
+
   interface RendererProcessPreference {
     contentScripts: Array<ContentScript>
     extensionId: string;
