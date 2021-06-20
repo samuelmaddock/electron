@@ -1302,7 +1302,10 @@ bool ElectronBrowserClient::WillCreateURLLoaderFactory(
   DCHECK(web_request.get());
 
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
-  if (!web_request->HasListener()) {
+  bool supported_loader_type =
+      type == URLLoaderFactoryType::kNavigation ? frame_host != NULL : true;
+
+  if (supported_loader_type && !web_request->HasListener()) {
     auto* web_request_api = extensions::BrowserContextKeyedAPIFactory<
         extensions::WebRequestAPI>::Get(browser_context);
 
