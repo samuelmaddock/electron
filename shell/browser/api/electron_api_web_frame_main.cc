@@ -56,23 +56,27 @@ namespace electron {
 
 namespace api {
 
-typedef std::unordered_map<content::RenderFrameHost*, WebFrameMain*>
-    RenderFrameMap;
-base::LazyInstance<RenderFrameMap>::DestructorAtExit g_render_frame_map =
-    LAZY_INSTANCE_INITIALIZER;
+typedef std::unordered_map<int, WebFrameMain*> WebFrameMainIdMap;
+
+base::LazyInstance<WebFrameMainIdMap>::DestructorAtExit
+    g_web_frame_main_id_map = LAZY_INSTANCE_INITIALIZER;
+
+WebFrameMain* FromFrameTreeNodeId(int id) {
+  auto frame_map = g_web_frame_main_id_map.Get();
+  auto iter = frame_map.find(id);
+  auto* web_frame = iter == frame_map.end() ? nullptr : iter->second;
+  return web_frame;
+}
 
 // static
 WebFrameMain* WebFrameMain::From(content::RenderFrameHost* rfh) {
-  auto frame_map = g_render_frame_map.Get();
-  auto iter = frame_map.find(rfh);
-  auto* web_frame = iter == frame_map.end() ? nullptr : iter->second;
-  return web_frame;
+  return FromFrameTreeNodeId(rfh->GetFrameTreeNodeId());
 }
 
 gin::WrapperInfo WebFrameMain::kWrapperInfo = {gin::kEmbedderNativeGin};
 
 WebFrameMain::WebFrameMain(content::RenderFrameHost* rfh) : render_frame_(rfh) {
-  g_render_frame_map.Get().emplace(rfh, this);
+  g_web_frame_main_id_map.Get().emplace(rfh->GetFrameTreeNodeId(), this);
 }
 
 WebFrameMain::~WebFrameMain() {
@@ -83,8 +87,12 @@ void WebFrameMain::MarkRenderFrameDisposed() {
   if (render_frame_disposed_)
     return;
   Unpin();
-  g_render_frame_map.Get().erase(render_frame_);
+  g_web_frame_main_id_map.Get().erase(render_frame_->GetFrameTreeNodeId());
   render_frame_disposed_ = true;
+}
+
+void WebFrameMain::UpdateRenderFrameHost(content::RenderFrameHost* rfh) {
+  render_frame_ = rfh;
 }
 
 bool WebFrameMain::CheckRenderFrame() const {

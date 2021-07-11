@@ -56,6 +56,8 @@ class WebFrameMain : public gin::Wrappable<WebFrameMain>,
       v8::Local<v8::ObjectTemplate>);
   const char* GetTypeName() override;
 
+  content::RenderFrameHost* render_frame_host() const { return render_frame_; }
+
  protected:
   explicit WebFrameMain(content::RenderFrameHost* render_frame);
   ~WebFrameMain() override;
@@ -66,6 +68,9 @@ class WebFrameMain : public gin::Wrappable<WebFrameMain>,
   // Mark RenderFrameHost as disposed and to no longer access it. This can
   // occur upon frame navigation.
   void MarkRenderFrameDisposed();
+
+  // Swap out the internal RFH when cross-origin navigation occurs.
+  void UpdateRenderFrameHost(content::RenderFrameHost* rfh);
 
   const mojo::Remote<mojom::ElectronRenderer>& GetRendererApi();
 
