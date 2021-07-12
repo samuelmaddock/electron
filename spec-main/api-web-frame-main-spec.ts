@@ -233,4 +233,27 @@ describe('webFrameMain module', () => {
       }
     });
   });
+
+  describe.only('insertCSS', () => {
+    afterEach(closeAllWindows);
+
+    it('supports inserting CSS', async () => {
+      const w = new BrowserWindow({ show: false, webPreferences: { nodeIntegrationInSubFrames: true } });
+      await w.loadFile(path.join(subframesPath, 'frame-container.html'));
+      const subFrame = w.webContents.mainFrame.frames[0];
+      await subFrame.insertCSS('body { background-repeat: round; }');
+      const result = await subFrame.executeJavaScript('window.getComputedStyle(document.body).getPropertyValue("background-repeat")');
+      expect(result).to.equal('round');
+    });
+
+    it('supports removing inserted CSS', async () => {
+      const w = new BrowserWindow({ show: false, webPreferences: { nodeIntegrationInSubFrames: true } });
+      await w.loadFile(path.join(subframesPath, 'frame-container.html'));
+      const subFrame = w.webContents.mainFrame.frames[0];
+      const key = await subFrame.insertCSS('body { background-repeat: round; }');
+      await subFrame.removeInsertedCSS(key);
+      const result = await subFrame.executeJavaScript('window.getComputedStyle(document.body).getPropertyValue("background-repeat")');
+      expect(result).to.equal('repeat');
+    });
+  });
 });

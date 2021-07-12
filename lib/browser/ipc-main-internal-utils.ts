@@ -14,12 +14,12 @@ export const handleSync = function <T extends IPCHandler> (channel: string, hand
 
 let nextId = 0;
 
-export function invokeInWebContents<T> (sender: Electron.WebContents, command: string, ...args: any[]) {
+export function invokeInWebFrame<T> (senderFrame: Electron.WebFrameMain, command: string, ...args: any[]) {
   return new Promise<T>((resolve, reject) => {
     const requestId = ++nextId;
     const channel = `${command}_RESPONSE_${requestId}`;
     ipcMainInternal.on(channel, function handler (event, error: Error, result: any) {
-      if (event.sender !== sender) {
+      if (event.senderFrame !== senderFrame) {
         console.error(`Reply to ${command} sent by unexpected WebContents (${event.sender.id})`);
         return;
       }
@@ -33,6 +33,6 @@ export function invokeInWebContents<T> (sender: Electron.WebContents, command: s
       }
     });
 
-    sender._sendInternal(command, requestId, ...args);
+    senderFrame._sendInternal(command, requestId, ...args);
   });
 }

@@ -132,6 +132,59 @@ ipcRenderer.on('port', (e, msg) => {
 })
 ```
 
+#### `frame.insertCSS(css[, options])`
+
+* `css` String
+* `options` Object (optional)
+  * `cssOrigin` String (optional) - Can be either 'user' or 'author'; Specifying 'user' enables you to prevent websites from overriding the CSS you insert. Default is 'author'.
+
+Returns `Promise<String>` - A promise that resolves with a key for the inserted CSS that can later be used to remove the CSS via `frame.removeInsertedCSS(key)`.
+
+Injects CSS into the current web page and returns a unique key for the inserted
+stylesheet.
+
+```js
+frame.insertCSS('html, body { background-color: #f00; }')
+```
+
+#### `frame.removeInsertedCSS(key)`
+
+* `key` String
+
+Returns `Promise<void>` - Resolves if the removal was successful.
+
+Removes the inserted CSS from the current web page. The stylesheet is identified
+by its key, which is returned from `frame.insertCSS(css)`.
+
+```js
+const key = await frame.insertCSS('html, body { background-color: #f00; }')
+frame.removeInsertedCSS(key)
+```
+
+#### `frame.insertText(text)`
+
+* `text` String
+
+Returns `Promise<void>`
+
+Inserts `text` to the focused element.
+
+#### `frame.setVisualZoomLevelLimits(minimumLevel, maximumLevel)`
+
+* `minimumLevel` Number
+* `maximumLevel` Number
+
+Returns `Promise<void>`
+
+Sets the maximum and minimum pinch-to-zoom level.
+
+> **NOTE**: Visual zoom is disabled by default in Electron. To re-enable it, call:
+>
+> ```js
+> frame.setVisualZoomLevelLimits(1, 3)
+> ```
+
+
 ### Instance Properties
 
 #### `frame.url` _Readonly_

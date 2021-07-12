@@ -1,4 +1,7 @@
+import * as ipcMainUtils from '@electron/internal/browser/ipc-main-internal-utils';
 import { MessagePortMain } from '@electron/internal/browser/message-port-main';
+import { IPC_MESSAGES } from '@electron/internal/common/ipc-messages';
+import { webFrameMethods } from '@electron/internal/common/web-frame-methods';
 
 const { WebFrameMain, fromId } = process._linkedBinding('electron_browser_web_frame_main');
 
@@ -24,6 +27,12 @@ WebFrameMain.prototype.postMessage = function (...args) {
   }
   this._postMessage(...args);
 };
+
+for (const method of webFrameMethods) {
+  WebFrameMain.prototype[method] = function (...args: any[]): Promise<any> {
+    return ipcMainUtils.invokeInWebFrame(this, IPC_MESSAGES.RENDERER_WEB_FRAME_METHOD, method, ...args);
+  };
+}
 
 export default {
   fromId

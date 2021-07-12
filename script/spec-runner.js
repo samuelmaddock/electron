@@ -59,8 +59,8 @@ async function main () {
       (lastSpecInstallHash !== currentSpecInstallHash);
 
   if (somethingChanged) {
-    await installSpecModules(path.resolve(__dirname, '..', 'spec'));
-    await installSpecModules(path.resolve(__dirname, '..', 'spec-main'));
+    // await installSpecModules(path.resolve(__dirname, '..', 'spec'));
+    // await installSpecModules(path.resolve(__dirname, '..', 'spec-main'));
     await getSpecHash().then(saveSpecHash);
   }
 
