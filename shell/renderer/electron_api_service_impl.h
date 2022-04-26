@@ -40,6 +40,12 @@ class ElectronApiServiceImpl : public mojom::ElectronRenderer,
                           blink::TransferableMessage message) override;
   void TakeHeapSnapshot(mojo::ScopedHandle file,
                         TakeHeapSnapshotCallback callback) override;
+  void JavaScriptExecuteRequest(
+        const std::u16string& javascript,
+        bool wants_result,
+        bool has_user_gesture,
+        int32_t world_id,
+        JavaScriptExecuteRequestCallback callback) override;
   void ProcessPendingMessages();
 
   base::WeakPtr<ElectronApiServiceImpl> GetWeakPtr() {

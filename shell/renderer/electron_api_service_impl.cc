@@ -16,16 +16,19 @@
 #include "shell/common/electron_constants.h"
 #include "shell/common/gin_converters/blink_converter.h"
 #include "shell/common/gin_converters/value_converter.h"
+#include "shell/common/gin_helper/promise.h"
 #include "shell/common/heap_snapshot.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/options_switches.h"
 #include "shell/common/v8_value_serializer.h"
 #include "shell/renderer/electron_render_frame_observer.h"
 #include "shell/renderer/renderer_client_base.h"
+#include "shell/renderer/script_execution_callback.h"
 #include "third_party/blink/public/mojom/frame/user_activation_notification_type.mojom-shared.h"
 #include "third_party/blink/public/web/blink.h"
 #include "third_party/blink/public/web/web_local_frame.h"
 #include "third_party/blink/public/web/web_message_port_converter.h"
+#include "third_party/blink/public/web/web_script_source.h"
 
 namespace electron {
 
@@ -218,6 +221,38 @@ void ElectronApiServiceImpl::TakeHeapSnapshot(
       electron::TakeHeapSnapshot(blink::MainThreadIsolate(), &base_file);
 
   std::move(callback).Run(success);
+}
+
+void ElectronApiServiceImpl::JavaScriptExecuteRequest(
+    const std::u16string& javascript,
+    bool wants_result,
+    bool has_user_gesture,
+    int32_t world_id,
+    JavaScriptExecuteRequestCallback callback) {
+  blink::WebLocalFrame* frame = render_frame()->GetWebFrame();
+  if (!frame)
+    return;
+  
+  v8::Isolate* isolate = blink::MainThreadIsolate();
+  v8::HandleScope handle_scope(isolate);
+
+  v8::Local<v8::Context> script_context = frame->GetScriptContextFromWorldId(isolate, world_id);
+  
+  const blink::WebScriptSource source{blink::WebString::FromUTF16(javascript)};
+
+  auto* webscript_callback = new ScriptExecutionCallback(base::BindOnce([](
+          JavaScriptExecuteRequestCallback callback,
+                        const v8::Local<v8::Value>& error,
+                        const v8::Local<v8::Value>& result) { std::move(callback).Run(result); },
+                    std::move(callback)),
+          script_context);
+
+  frame->RequestExecuteScript(
+        world_id, base::make_span(&source, 1),
+        has_user_gesture, blink::WebLocalFrame::kSynchronous,
+        webscript_callback,
+        blink::BackForwardCacheAware::kAllow,
+        blink::WebLocalFrame::PromiseBehavior::kAwait);
 }
 
 }  // namespace electron

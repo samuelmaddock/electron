@@ -142,17 +142,13 @@ v8::Local<v8::Promise> WebFrameMain::ExecuteJavaScript(
     return handle;
   }
 
-  if (user_gesture) {
-    auto* ftn = content::FrameTreeNode::From(render_frame_);
-    ftn->UpdateUserActivationState(
-        blink::mojom::UserActivationUpdateType::kNotifyActivation,
-        blink::mojom::UserActivationNotificationType::kTest);
-  }
+  auto world_id = 1; // TODO: get enum for main world
 
-  render_frame_->ExecuteJavaScriptForTests(
-      code, base::BindOnce([](gin_helper::Promise<base::Value> promise,
-                              base::Value value) { promise.Resolve(value); },
-                           std::move(promise)));
+  // TODO: error handling
+  GetRendererApi()->JavaScriptExecuteRequest(
+    code, true, user_gesture, world_id, base::BindOnce([](gin_helper::Promise<base::Value> promise,
+                                      base::Value value) { promise.Resolve(value); },
+                                  std::move(promise)));
 
   return handle;
 }
