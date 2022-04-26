@@ -29,6 +29,7 @@
 #include "third_party/blink/public/web/web_local_frame.h"
 #include "third_party/blink/public/web/web_message_port_converter.h"
 #include "third_party/blink/public/web/web_script_source.h"
+#include "third_party/blink/renderer/core/messaging/blink_cloneable_message.h"
 
 namespace electron {
 
@@ -243,7 +244,17 @@ void ElectronApiServiceImpl::JavaScriptExecuteRequest(
   auto* webscript_callback = new ScriptExecutionCallback(base::BindOnce([](
           JavaScriptExecuteRequestCallback callback,
                         const v8::Local<v8::Value>& error,
-                        const v8::Local<v8::Value>& result) { std::move(callback).Run(result); },
+                        const v8::Local<v8::Value>& result) {
+                          v8::Isolate* isolate = blink::MainThreadIsolate();
+                          v8::HandleScope handle_scope(isolate);
+                          
+                          blink::CloneableMessage message;
+                          if (!electron::SerializeV8Value(isolate, result, &message)) {
+                            return;
+                          }
+                          
+                          std::move(callback).Run(std::move(message));
+                        },
                     std::move(callback)),
           script_context);
 

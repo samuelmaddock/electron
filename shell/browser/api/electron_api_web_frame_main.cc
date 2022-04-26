@@ -120,7 +120,7 @@ bool WebFrameMain::CheckRenderFrame() const {
 v8::Local<v8::Promise> WebFrameMain::ExecuteJavaScript(
     gin::Arguments* args,
     const std::u16string& code) {
-  gin_helper::Promise<base::Value> promise(args->isolate());
+  gin_helper::Promise<v8::Local<v8::Value>> promise(args->isolate());
   v8::Local<v8::Promise> handle = promise.GetHandle();
 
   // Optional userGesture parameter
@@ -146,8 +146,14 @@ v8::Local<v8::Promise> WebFrameMain::ExecuteJavaScript(
 
   // TODO: error handling
   GetRendererApi()->JavaScriptExecuteRequest(
-    code, true, user_gesture, world_id, base::BindOnce([](gin_helper::Promise<base::Value> promise,
-                                      base::Value value) { promise.Resolve(value); },
+    code, true, user_gesture, world_id, base::BindOnce([](gin_helper::Promise<v8::Local<v8::Value>> promise,
+                                      blink::CloneableMessage value) {
+                                        v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+                                        v8::HandleScope handle_scope(isolate);
+                                        v8::Local<v8::Value> message_value =
+                                            electron::DeserializeV8Value(isolate, value);
+                                        promise.Resolve(message_value);
+                                      },
                                   std::move(promise)));
 
   return handle;

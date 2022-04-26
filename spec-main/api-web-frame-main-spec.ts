@@ -161,6 +161,31 @@ describe('webFrameMain module', () => {
       expect(await getUrl(webFrame.frames[0])).to.equal(fileUrl('frame-with-frame.html'));
       expect(await getUrl(webFrame.frames[0].frames[0])).to.equal(fileUrl('frame.html'));
     });
+
+    it('can await promise results', async () => {
+      const w = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true } });
+      await w.loadURL('about:blank');
+
+      w.webContents.on('console-message', (e, level, message) => {
+        console.log(`${level}: ${message}`);
+      });
+
+      const { mainFrame } = w.webContents;
+      expect(await mainFrame.executeJavaScript("'primitive data type'")).to.equal('primitive data type');
+
+      // TODO: why does this not resolve?
+      // const asyncFnStr = `(${async function () {
+      //   await new Promise((resolve) => {
+      //     setTimeout(() => {
+      //       resolve('async result');
+      //     }, 0);
+      //   });
+      // }}());`;
+      // console.log(asyncFnStr);
+      // expect(await mainFrame.executeJavaScript(asyncFnStr)).to.equal('async result');
+
+      expect(await mainFrame.executeJavaScript('Promise.resolve("async result")')).to.equal('async result');
+    });
   });
 
   describe('WebFrame.reload', () => {
