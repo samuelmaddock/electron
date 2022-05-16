@@ -38,6 +38,10 @@ const main = async () => {
       config: 'webpack.config.worker.js'
     },
     {
+      name: 'sandbox_worker_bundle_deps',
+      config: 'webpack.config.sandboxed_worker.js'
+    },
+    {
       name: 'asar_bundle_deps',
       config: 'webpack.config.asar.js'
     }

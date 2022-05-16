@@ -44,6 +44,11 @@ class ElectronSandboxedRendererClient : public RendererClientBase {
   void RunScriptsAtDocumentStart(content::RenderFrame* render_frame) override;
   void RunScriptsAtDocumentEnd(content::RenderFrame* render_frame) override;
 
+  void DidInitializeWorkerContextOnWorkerThread(
+      v8::Local<v8::Context> context) override;
+  void WillDestroyWorkerContextOnWorkerThread(
+      v8::Local<v8::Context> context) override;
+
  private:
   std::unique_ptr<base::ProcessMetrics> metrics_;
 

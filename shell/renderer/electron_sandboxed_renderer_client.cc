@@ -24,6 +24,7 @@
 #include "shell/common/node_util.h"
 #include "shell/common/options_switches.h"
 #include "shell/renderer/electron_render_frame_observer.h"
+#include "shell/renderer/sandboxed_worker_observer.h"
 #include "third_party/blink/public/common/web_preferences/web_preferences.h"
 #include "third_party/blink/public/web/blink.h"
 #include "third_party/blink/public/web/web_document.h"
@@ -234,6 +235,18 @@ void ElectronSandboxedRendererClient::WillReleaseScriptContext(
   v8::HandleScope handle_scope(isolate);
   v8::Context::Scope context_scope(context);
   InvokeHiddenCallback(context, kLifecycleKey, "onExit");
+}
+
+void ElectronSandboxedRendererClient::DidInitializeWorkerContextOnWorkerThread(
+    v8::Local<v8::Context> context) {
+  // TODO(samuelmaddock): Check blink prefs
+  SandboxedWorkerObserver::GetCurrent()->DidInitializeWorkerContextOnWorkerThread(context);
+}
+
+void ElectronSandboxedRendererClient::WillDestroyWorkerContextOnWorkerThread(
+    v8::Local<v8::Context> context) {
+  // TODO(samuelmaddock): Check blink prefs
+  SandboxedWorkerObserver::GetCurrent()->ContextWillDestroy(context);
 }
 
 }  // namespace electron
