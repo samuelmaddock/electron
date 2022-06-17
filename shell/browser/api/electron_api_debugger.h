@@ -16,6 +16,7 @@
 #include "gin/handle.h"
 #include "gin/wrappable.h"
 #include "shell/browser/event_emitter_mixin.h"
+#include "shell/browser/ui/inspectable_web_contents.h"
 #include "shell/common/gin_helper/promise.h"
 
 namespace content {
@@ -71,7 +72,11 @@ class Debugger : public gin::Wrappable<Debugger>,
   bool IsAttached();
   void Detach();
   v8::Local<v8::Promise> SendCommand(gin::Arguments* args);
+  void OpenDevTools();
+
   void ClearPendingRequests();
+
+  std::unique_ptr<InspectableWebContents> inspectable_web_contents_;
 
   //   content::WebContents* web_contents_;  // Weak Reference.
   scoped_refptr<content::DevToolsAgentHost> agent_host_;

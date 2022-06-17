@@ -186,6 +186,16 @@ v8::Local<v8::Promise> Debugger::SendCommand(gin::Arguments* args) {
   return handle;
 }
 
+void Debugger::OpenDevTools() {
+  if (!inspectable_web_contents_) {
+    inspectable_web_contents_ =
+        std::make_unique<InspectableWebContents>(agent_host_);
+  }
+
+  inspectable_web_contents_->SetDockState("detach");
+  inspectable_web_contents_->ShowDevTools(true);
+}
+
 void Debugger::ClearPendingRequests() {
   for (auto& it : pending_requests_)
     it.second.RejectWithErrorMessage("target closed while handling command");
@@ -205,7 +215,8 @@ gin::ObjectTemplateBuilder Debugger::GetObjectTemplateBuilder(
       .SetMethod("attach", &Debugger::Attach)
       .SetMethod("isAttached", &Debugger::IsAttached)
       .SetMethod("detach", &Debugger::Detach)
-      .SetMethod("sendCommand", &Debugger::SendCommand);
+      .SetMethod("sendCommand", &Debugger::SendCommand)
+      .SetMethod("openDevTools", &Debugger::OpenDevTools);
 }
 
 const char* Debugger::GetTypeName() {

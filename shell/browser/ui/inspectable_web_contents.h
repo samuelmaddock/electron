@@ -49,6 +49,7 @@ class InspectableWebContents
   InspectableWebContents(std::unique_ptr<content::WebContents> web_contents,
                          PrefService* pref_service,
                          bool is_guest);
+  InspectableWebContents(scoped_refptr<content::DevToolsAgentHost> agent_host);
   ~InspectableWebContents() override;
 
   // disable copy
@@ -58,6 +59,7 @@ class InspectableWebContents
   InspectableWebContentsView* GetView() const;
   content::WebContents* GetWebContents() const;
   content::WebContents* GetDevToolsWebContents() const;
+  content::BrowserContext* GetBrowserContext() const;
 
   void SetDelegate(InspectableWebContentsDelegate* delegate);
   InspectableWebContentsDelegate* GetDelegate() const;

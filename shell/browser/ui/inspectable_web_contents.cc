@@ -42,6 +42,7 @@
 #include "services/network/public/cpp/simple_url_loader_stream_consumer.h"
 #include "services/network/public/cpp/wrapper_shared_url_loader_factory.h"
 #include "shell/browser/api/electron_api_web_contents.h"
+#include "shell/browser/electron_browser_context.h"
 #include "shell/browser/net/asar/asar_url_loader_factory.h"
 #include "shell/browser/protocol_registry.h"
 #include "shell/browser/ui/inspectable_web_contents_delegate.h"
@@ -60,7 +61,6 @@
 #include "content/public/browser/render_process_host.h"
 #include "extensions/browser/extension_registry.h"
 #include "extensions/common/permissions/permissions_data.h"
-#include "shell/browser/electron_browser_context.h"
 #endif
 
 namespace electron {
@@ -375,6 +375,20 @@ InspectableWebContents::InspectableWebContents(
   g_web_contents_instances_.push_back(this);
 }
 
+InspectableWebContents::InspectableWebContents(
+    scoped_refptr<content::DevToolsAgentHost> agent_host)
+    : pref_service_(agent_host->GetBrowserContext()
+                        ? reinterpret_cast<ElectronBrowserContext*>(
+                              agent_host->GetBrowserContext())
+                              ->prefs()
+                        : nullptr),
+      web_contents_(nullptr),
+      is_guest_(false),
+      view_(CreateInspectableContentsView(this)),
+      agent_host_(agent_host) {
+  g_web_contents_instances_.push_back(this);
+}
+
 InspectableWebContents::~InspectableWebContents() {
   g_web_contents_instances_.remove(this);
   // Unsubscribe from devtools and Clean up resources.
@@ -388,7 +402,19 @@ InspectableWebContentsView* InspectableWebContents::GetView() const {
 }
 
 content::WebContents* InspectableWebContents::GetWebContents() const {
-  return web_contents_.get();
+  if (web_contents_)
+    return web_contents_.get();
+  // if (agent_host_)
+  //   return agent_host_->GetWebContents();
+  return nullptr;
+}
+
+content::BrowserContext* InspectableWebContents::GetBrowserContext() const {
+  if (web_contents_)
+    return web_contents_->GetBrowserContext();
+  if (agent_host_)
+    return agent_host_->GetBrowserContext();
+  return nullptr;
 }
 
 content::WebContents* InspectableWebContents::GetDevToolsWebContents() const {
@@ -399,7 +425,7 @@ content::WebContents* InspectableWebContents::GetDevToolsWebContents() const {
 }
 
 void InspectableWebContents::InspectElement(int x, int y) {
-  if (agent_host_)
+  if (agent_host_ && web_contents_)
     agent_host_->InspectElement(web_contents_->GetMainFrame(), x, y);
 }
 
@@ -453,7 +479,7 @@ void InspectableWebContents::ShowDevTools(bool activate) {
 
   if (!external_devtools_web_contents_) {  // no external devtools
     managed_devtools_web_contents_ = content::WebContents::Create(
-        content::WebContents::CreateParams(web_contents_->GetBrowserContext()));
+        content::WebContents::CreateParams(GetBrowserContext()));
     managed_devtools_web_contents_->SetDelegate(this);
     v8::Isolate* isolate = v8::Isolate::GetCurrent();
     v8::HandleScope scope(isolate);
@@ -462,7 +488,12 @@ void InspectableWebContents::ShowDevTools(bool activate) {
   }
 
   Observe(GetDevToolsWebContents());
-  AttachTo(content::DevToolsAgentHost::GetOrCreateFor(web_contents_.get()));
+
+  auto target_host =
+      agent_host_
+          ? agent_host_
+          : content::DevToolsAgentHost::GetOrCreateFor(web_contents_.get());
+  AttachTo(target_host);
 
   GetDevToolsWebContents()->GetController().LoadURL(
       GetDevToolsURL(can_dock_), content::Referrer(),
@@ -477,7 +508,7 @@ void InspectableWebContents::CloseDevTools() {
       managed_devtools_web_contents_.reset();
     }
     embedder_message_dispatcher_.reset();
-    if (!IsGuest())
+    if (!IsGuest() && web_contents_)
       web_contents_->Focus();
   }
 }
@@ -595,7 +626,7 @@ void InspectableWebContents::LoadCompleted() {
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
 void InspectableWebContents::AddDevToolsExtensionsToClient() {
   // get main browser context
-  auto* browser_context = web_contents_->GetBrowserContext();
+  auto* browser_context = GetBrowserContext();
   const extensions::ExtensionRegistry* registry =
       extensions::ExtensionRegistry::Get(browser_context);
   if (!registry)
@@ -611,9 +642,11 @@ void InspectableWebContents::AddDevToolsExtensionsToClient() {
     // Each devtools extension will need to be able to run in the devtools
     // process. Grant the devtools process the ability to request URLs from the
     // extension.
-    content::ChildProcessSecurityPolicy::GetInstance()->GrantRequestOrigin(
-        web_contents_->GetMainFrame()->GetProcess()->GetID(),
-        url::Origin::Create(extension->url()));
+    if (web_contents_) {
+      content::ChildProcessSecurityPolicy::GetInstance()->GrantRequestOrigin(
+          web_contents_->GetMainFrame()->GetProcess()->GetID(),
+          url::Origin::Create(extension->url()));
+    }
 
     auto extension_info = std::make_unique<base::DictionaryValue>();
     extension_info->SetString("startPage", devtools_page_url.spec());
@@ -993,7 +1026,7 @@ void InspectableWebContents::WebContentsDestroyed() {
 bool InspectableWebContents::HandleKeyboardEvent(
     content::WebContents* source,
     const content::NativeWebKeyboardEvent& event) {
-  auto* delegate = web_contents_->GetDelegate();
+  auto* delegate = web_contents_ ? web_contents_->GetDelegate() : nullptr;
   return !delegate || delegate->HandleKeyboardEvent(source, event);
 }
 
@@ -1006,7 +1039,7 @@ void InspectableWebContents::RunFileChooser(
     content::RenderFrameHost* render_frame_host,
     scoped_refptr<content::FileSelectListener> listener,
     const blink::mojom::FileChooserParams& params) {
-  auto* delegate = web_contents_->GetDelegate();
+  auto* delegate = web_contents_ ? web_contents_->GetDelegate() : nullptr;
   if (delegate)
     delegate->RunFileChooser(render_frame_host, std::move(listener), params);
 }
@@ -1015,7 +1048,7 @@ void InspectableWebContents::EnumerateDirectory(
     content::WebContents* source,
     scoped_refptr<content::FileSelectListener> listener,
     const base::FilePath& path) {
-  auto* delegate = web_contents_->GetDelegate();
+  auto* delegate = web_contents_ ? web_contents_->GetDelegate() : nullptr;
   if (delegate)
     delegate->EnumerateDirectory(source, std::move(listener), path);
 }

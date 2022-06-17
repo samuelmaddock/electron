@@ -83,6 +83,7 @@ InspectableWebContentsViewViews::InspectableWebContentsViewViews(
       devtools_web_view_(new views::WebView(nullptr)),
       title_(u"Developer Tools") {
   if (!inspectable_web_contents_->IsGuest() &&
+      inspectable_web_contents_->GetWebContents() &&
       inspectable_web_contents_->GetWebContents()->GetNativeView()) {
     auto* contents_web_view = new views::WebView(nullptr);
     contents_web_view->SetWebContents(
