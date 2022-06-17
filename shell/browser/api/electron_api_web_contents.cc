@@ -3430,7 +3430,9 @@ v8::Local<v8::Value> WebContents::DevToolsWebContents(v8::Isolate* isolate) {
 
 v8::Local<v8::Value> WebContents::Debugger(v8::Isolate* isolate) {
   if (debugger_.IsEmpty()) {
-    auto handle = electron::api::Debugger::Create(isolate, web_contents());
+    scoped_refptr<content::DevToolsAgentHost> agent_host =
+        content::DevToolsAgentHost::GetOrCreateFor(web_contents());
+    auto handle = electron::api::Debugger::Create(isolate, agent_host.get());
     debugger_.Reset(isolate, handle.ToV8());
   }
   return v8::Local<v8::Value>::New(isolate, debugger_);

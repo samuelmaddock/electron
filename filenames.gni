@@ -267,6 +267,8 @@ filenames = {
     "shell/browser/api/electron_api_data_pipe_holder.h",
     "shell/browser/api/electron_api_debugger.cc",
     "shell/browser/api/electron_api_debugger.h",
+    "shell/browser/api/electron_api_devtools.cc",
+    "shell/browser/api/electron_api_devtools.h",
     "shell/browser/api/electron_api_dialog.cc",
     "shell/browser/api/electron_api_download_item.cc",
     "shell/browser/api/electron_api_download_item.h",

@@ -9,6 +9,7 @@ export const browserModuleList: ElectronInternal.ModuleEntry[] = [
   { name: 'BrowserWindow', loader: () => require('./browser-window') },
   { name: 'contentTracing', loader: () => require('./content-tracing') },
   { name: 'crashReporter', loader: () => require('./crash-reporter') },
+  { name: 'devTools', loader: () => require('./devtools') },
   { name: 'dialog', loader: () => require('./dialog') },
   { name: 'globalShortcut', loader: () => require('./global-shortcut') },
   { name: 'ipcMain', loader: () => require('./ipc-main') },

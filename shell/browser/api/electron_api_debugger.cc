@@ -26,8 +26,8 @@ namespace api {
 
 gin::WrapperInfo Debugger::kWrapperInfo = {gin::kEmbedderNativeGin};
 
-Debugger::Debugger(v8::Isolate* isolate, content::WebContents* web_contents)
-    : content::WebContentsObserver(web_contents), web_contents_(web_contents) {}
+Debugger::Debugger(v8::Isolate* isolate, content::DevToolsAgentHost* agent_host)
+    : agent_host_(agent_host) {}
 
 Debugger::~Debugger() = default;
 
@@ -36,6 +36,13 @@ void Debugger::AgentHostClosed(DevToolsAgentHost* agent_host) {
   agent_host_ = nullptr;
   ClearPendingRequests();
   Emit("detach", "target closed");
+}
+
+void Debugger::DevToolsAgentHostDestroyed(
+    content::DevToolsAgentHost* agent_host) {
+  DCHECK(agent_host == agent_host_);
+  agent_host_ = nullptr;
+  ClearPendingRequests();
 }
 
 void Debugger::DispatchProtocolMessage(DevToolsAgentHost* agent_host,
@@ -89,20 +96,20 @@ void Debugger::DispatchProtocolMessage(DevToolsAgentHost* agent_host,
   }
 }
 
-void Debugger::RenderFrameHostChanged(content::RenderFrameHost* old_rfh,
-                                      content::RenderFrameHost* new_rfh) {
-  if (agent_host_) {
-    agent_host_->DisconnectWebContents();
-    auto* web_contents = content::WebContents::FromRenderFrameHost(new_rfh);
-    agent_host_->ConnectWebContents(web_contents);
-  }
-}
+// void Debugger::RenderFrameHostChanged(content::RenderFrameHost* old_rfh,
+//                                       content::RenderFrameHost* new_rfh) {
+//   if (agent_host_) {
+//     agent_host_->DisconnectWebContents();
+//     auto* web_contents = content::WebContents::FromRenderFrameHost(new_rfh);
+//     agent_host_->ConnectWebContents(web_contents);
+//   }
+// }
 
 void Debugger::Attach(gin::Arguments* args) {
   std::string protocol_version;
   args->GetNext(&protocol_version);
 
-  if (agent_host_) {
+  if (agent_host_ && agent_host_->IsAttached()) {
     args->ThrowTypeError("Debugger is already attached to the target");
     return;
   }
@@ -113,7 +120,6 @@ void Debugger::Attach(gin::Arguments* args) {
     return;
   }
 
-  agent_host_ = DevToolsAgentHost::GetOrCreateFor(web_contents_);
   if (!agent_host_) {
     args->ThrowTypeError("No target available");
     return;
@@ -188,8 +194,8 @@ void Debugger::ClearPendingRequests() {
 
 // static
 gin::Handle<Debugger> Debugger::Create(v8::Isolate* isolate,
-                                       content::WebContents* web_contents) {
-  return gin::CreateHandle(isolate, new Debugger(isolate, web_contents));
+                                       content::DevToolsAgentHost* agent_host) {
+  return gin::CreateHandle(isolate, new Debugger(isolate, agent_host));
 }
 
 gin::ObjectTemplateBuilder Debugger::GetObjectTemplateBuilder(

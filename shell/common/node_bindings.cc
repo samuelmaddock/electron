@@ -48,6 +48,7 @@
   V(electron_browser_browser_view)       \
   V(electron_browser_content_tracing)    \
   V(electron_browser_crash_reporter)     \
+  V(electron_browser_devtools)           \
   V(electron_browser_dialog)             \
   V(electron_browser_event)              \
   V(electron_browser_event_emitter)      \

@@ -10,6 +10,7 @@
 #include "base/callback.h"
 #include "base/values.h"
 #include "content/public/browser/devtools_agent_host_client.h"
+#include "content/public/browser/devtools_agent_host_observer.h"
 #include "content/public/browser/web_contents_observer.h"
 #include "gin/arguments.h"
 #include "gin/handle.h"
@@ -29,10 +30,11 @@ namespace api {
 class Debugger : public gin::Wrappable<Debugger>,
                  public gin_helper::EventEmitterMixin<Debugger>,
                  public content::DevToolsAgentHostClient,
-                 public content::WebContentsObserver {
+                 public content::WebContentsObserver,
+                 public content::DevToolsAgentHostObserver {
  public:
   static gin::Handle<Debugger> Create(v8::Isolate* isolate,
-                                      content::WebContents* web_contents);
+                                      content::DevToolsAgentHost* agent_host);
 
   // gin::Wrappable
   static gin::WrapperInfo kWrapperInfo;
@@ -45,7 +47,7 @@ class Debugger : public gin::Wrappable<Debugger>,
   Debugger& operator=(const Debugger&) = delete;
 
  protected:
-  Debugger(v8::Isolate* isolate, content::WebContents* web_contents);
+  Debugger(v8::Isolate* isolate, content::DevToolsAgentHost* agent_host);
   ~Debugger() override;
 
   // content::DevToolsAgentHostClient:
@@ -54,8 +56,12 @@ class Debugger : public gin::Wrappable<Debugger>,
                                base::span<const uint8_t> message) override;
 
   // content::WebContentsObserver:
-  void RenderFrameHostChanged(content::RenderFrameHost* old_rfh,
-                              content::RenderFrameHost* new_rfh) override;
+  //   void RenderFrameHostChanged(content::RenderFrameHost* old_rfh,
+  //                               content::RenderFrameHost* new_rfh) override;
+
+  // content::DevToolsAgentHostObserver
+  void DevToolsAgentHostDestroyed(
+      content::DevToolsAgentHost* agent_host) override;
 
  private:
   using PendingRequestMap =
@@ -67,7 +73,7 @@ class Debugger : public gin::Wrappable<Debugger>,
   v8::Local<v8::Promise> SendCommand(gin::Arguments* args);
   void ClearPendingRequests();
 
-  content::WebContents* web_contents_;  // Weak Reference.
+  //   content::WebContents* web_contents_;  // Weak Reference.
   scoped_refptr<content::DevToolsAgentHost> agent_host_;
 
   PendingRequestMap pending_requests_;
