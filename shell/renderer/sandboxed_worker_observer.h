@@ -7,11 +7,18 @@
 
 #include <memory>
 
+#include "base/memory/scoped_refptr.h"
 #include "v8/include/v8.h"
 
 namespace base {
 class ProcessMetrics;
 }
+
+namespace blink {
+class DOMWrapperWorld;
+class ScriptState;
+class WorkerOrWorkletGlobalScope;
+}  // namespace blink
 
 namespace electron {
 
@@ -25,6 +32,8 @@ class SandboxedWorkerObserver {
   SandboxedWorkerObserver(const SandboxedWorkerObserver&) = delete;
   SandboxedWorkerObserver& operator=(const SandboxedWorkerObserver&) = delete;
 
+  void InitializePreloadContextOnWorkerThread();
+
   void DidInitializeWorkerContextOnWorkerThread(v8::Local<v8::Context> context);
   void ContextWillDestroy(v8::Local<v8::Context> context);
 
@@ -33,6 +42,11 @@ class SandboxedWorkerObserver {
   ~SandboxedWorkerObserver();
 
   std::unique_ptr<base::ProcessMetrics> metrics_;
+
+  // blink::WorkerOrWorkletGlobalScope* global_scope_;
+  // blink::ScriptState* script_state_;
+  v8::Local<v8::Context> preload_context_;
+  scoped_refptr<blink::DOMWrapperWorld> world_;
 };
 
 }  // namespace electron

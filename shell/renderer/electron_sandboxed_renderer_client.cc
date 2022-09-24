@@ -240,13 +240,30 @@ void ElectronSandboxedRendererClient::WillReleaseScriptContext(
 void ElectronSandboxedRendererClient::DidInitializeWorkerContextOnWorkerThread(
     v8::Local<v8::Context> context) {
   // TODO(samuelmaddock): Check blink prefs
-  SandboxedWorkerObserver::GetCurrent()->DidInitializeWorkerContextOnWorkerThread(context);
+  SandboxedWorkerObserver::GetCurrent()
+      ->DidInitializeWorkerContextOnWorkerThread(context);
 }
 
 void ElectronSandboxedRendererClient::WillDestroyWorkerContextOnWorkerThread(
     v8::Local<v8::Context> context) {
   // TODO(samuelmaddock): Check blink prefs
   SandboxedWorkerObserver::GetCurrent()->ContextWillDestroy(context);
+}
+
+void ElectronSandboxedRendererClient::WillEvaluateServiceWorkerOnWorkerThread(
+    blink::WebServiceWorkerContextProxy* context_proxy,
+    v8::Local<v8::Context> v8_context,
+    int64_t service_worker_version_id,
+    const GURL& service_worker_scope,
+    const GURL& script_url) {
+  RendererClientBase::WillEvaluateServiceWorkerOnWorkerThread(
+      context_proxy, v8_context, service_worker_version_id,
+      service_worker_scope, script_url);
+
+  // TODO(samuelmaddock): Check blink prefs
+  // MUST RUN BEFORE EXTENSIONS
+  SandboxedWorkerObserver::GetCurrent()
+      ->DidInitializeWorkerContextOnWorkerThread(v8_context);
 }
 
 }  // namespace electron
