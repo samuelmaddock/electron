@@ -15,6 +15,7 @@
 #include "shell/common/node_bindings.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/node_util.h"
+#include "third_party/blink/renderer/core/execution_context/execution_context.h"  // nogncheck
 #include "third_party/blink/renderer/core/inspector/worker_thread_debugger.h"  // nogncheck
 #include "third_party/blink/renderer/core/workers/worker_thread.h"  // nogncheck
 #include "third_party/blink/renderer/platform/bindings/dom_wrapper_world.h"  // nogncheck
@@ -94,29 +95,41 @@ SandboxedWorkerObserver::SandboxedWorkerObserver() {
 }
 
 SandboxedWorkerObserver::~SandboxedWorkerObserver() {
+  if (!preload_context_.IsEmpty()) {
+    preload_context_.Reset();
+  }
   lazy_tls.Pointer()->Set(nullptr);
 }
 
-void SandboxedWorkerObserver::InitializePreloadContextOnWorkerThread() {
+void SandboxedWorkerObserver::InitializePreloadContextOnWorkerThread(
+    v8::Isolate* isolate,
+    v8::Local<v8::Context> worker_context) {
   if (!preload_context_.IsEmpty()) {
     return;
   }
 
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  v8::Local<v8::Context> context = v8::Context::New(
+      isolate, /*extensions=*/nullptr, v8::Local<v8::ObjectTemplate>(),
+      v8::MaybeLocal<v8::Value>(), v8::DeserializeInternalFieldsCallback(),
+      nullptr);
 
-  preload_context_ =
-      v8::Context::New(isolate, nullptr, v8::Local<v8::ObjectTemplate>(),
-                       v8::MaybeLocal<v8::Value>(),
-                       v8::DeserializeInternalFieldsCallback(), nullptr);
+  preload_context_.Reset(isolate, context);
 
   world_ = blink::DOMWrapperWorld::Create(
       isolate, blink::DOMWrapperWorld::WorldType::kWorker);
+
+  blink::ExecutionContext* execution_context =
+      blink::ExecutionContext::From(worker_context);
+  DCHECK(execution_context);
+
+  script_state_ = blink::MakeGarbageCollected<blink::ScriptState>(
+      context, world_, execution_context);
 
   std::string human_readable_name = "Electron Worker Preload";
   int context_group_id = 1;  // TODO: get from blink::WorkerOrWorkletGlobalScope
 
   v8_inspector::V8ContextInfo context_info(
-      preload_context_, context_group_id,
+      preload_context_.Get(isolate), context_group_id,
       v8_inspector::StringView(
           reinterpret_cast<const uint8_t*>(human_readable_name.data()),
           human_readable_name.size()));
@@ -131,13 +144,14 @@ void SandboxedWorkerObserver::DidInitializeWorkerContextOnWorkerThread(
     v8::Local<v8::Context> worker_context) {
   LOG(INFO) << "***SandboxedWorkerObserver::"
                "DidInitializeWorkerContextOnWorkerThread\n";
-  InitializePreloadContextOnWorkerThread();
+
+  v8::Isolate* isolate = worker_context->GetIsolate();
+  InitializePreloadContextOnWorkerThread(isolate, worker_context);
 
   // Wrap the bundle into a function that receives the binding object as
   // argument.
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
   v8::HandleScope handle_scope(isolate);
-  v8::Local<v8::Context> context = preload_context_;
+  v8::Local<v8::Context> context = preload_context_.Get(isolate);
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope script_scope(isolate,
                                    v8::MicrotasksScope::kRunMicrotasks);
@@ -172,12 +186,21 @@ void SandboxedWorkerObserver::DidInitializeWorkerContextOnWorkerThread(
 
 void SandboxedWorkerObserver::ContextWillDestroy(
     v8::Local<v8::Context> context) {
+  LOG(INFO) << "***SandboxedWorkerObserver::ContextWillDestroy\n";
+
+  if (script_state_) {
+    script_state_->DisposePerContextData();
+    script_state_->DissociateContext();
+  }
+  script_state_ = nullptr;
+
   if (!preload_context_.IsEmpty()) {
+    v8::Isolate* isolate = context->GetIsolate();
     blink::WorkerThreadDebugger* debugger =
         blink::WorkerThreadDebugger::From(context->GetIsolate());
-    debugger->GetV8Inspector()->contextDestroyed(preload_context_);
+    debugger->GetV8Inspector()->contextDestroyed(preload_context_.Get(isolate));
 
-    preload_context_.Clear();
+    preload_context_.Reset();
     world_.reset();
   }
 

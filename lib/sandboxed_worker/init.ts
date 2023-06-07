@@ -49,3 +49,12 @@ function preloadRequire (module: string) {
 (globalThis as any).require = preloadRequire;
 
 console.log('Worker internal script done');
+console.log(`Object.keys(globalThis)=${Object.keys(globalThis).join(', ')}`);
+console.log(`globalThis.setTimeout=${globalThis.setTimeout}`);
+console.log('electron=', require('electron'));
+console.log('timers=', require('timers'));
+
+console.log('***starting');
+require('timers').setTimeout(() => {
+  console.log('***ended');
+}, 5000);

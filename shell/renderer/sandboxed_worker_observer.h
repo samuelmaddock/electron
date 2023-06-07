@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "base/memory/scoped_refptr.h"
+#include "third_party/blink/renderer/platform/heap/persistent.h"  // nogncheck
 #include "v8/include/v8.h"
 
 namespace base {
@@ -32,7 +33,9 @@ class SandboxedWorkerObserver {
   SandboxedWorkerObserver(const SandboxedWorkerObserver&) = delete;
   SandboxedWorkerObserver& operator=(const SandboxedWorkerObserver&) = delete;
 
-  void InitializePreloadContextOnWorkerThread();
+  void InitializePreloadContextOnWorkerThread(
+      v8::Isolate* isolate,
+      v8::Local<v8::Context> worker_context);
 
   void DidInitializeWorkerContextOnWorkerThread(v8::Local<v8::Context> context);
   void ContextWillDestroy(v8::Local<v8::Context> context);
@@ -44,8 +47,8 @@ class SandboxedWorkerObserver {
   std::unique_ptr<base::ProcessMetrics> metrics_;
 
   // blink::WorkerOrWorkletGlobalScope* global_scope_;
-  // blink::ScriptState* script_state_;
-  v8::Local<v8::Context> preload_context_;
+  blink::Persistent<blink::ScriptState> script_state_;
+  v8::Global<v8::Context> preload_context_;
   scoped_refptr<blink::DOMWrapperWorld> world_;
 };
 
