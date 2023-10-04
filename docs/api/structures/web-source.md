@@ -1,4 +1,4 @@
-# WebSource Object
+docs/api/structures/web-source.md WebSource Object
 
 * `code` String
 * `url` String (optional)

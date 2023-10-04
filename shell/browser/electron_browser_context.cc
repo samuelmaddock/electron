@@ -22,6 +22,7 @@
 #include "base/threading/thread_restrictions.h"
 #include "chrome/common/chrome_paths.h"
 #include "chrome/common/pref_names.h"
+#include "components/background_sync/background_sync_controller_impl.h"
 #include "components/keyed_service/content/browser_context_dependency_manager.h"
 #include "components/prefs/json_pref_store.h"
 #include "components/prefs/pref_registry_simple.h"
@@ -54,6 +55,7 @@
 #include "shell/common/application_info.h"
 #include "shell/common/electron_paths.h"
 #include "shell/common/options_switches.h"
+#include "weblayer/browser/background_sync/background_sync_controller_factory.h"
 
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
 #include "extensions/browser/browser_context_keyed_service_factories.h"
@@ -374,7 +376,7 @@ ElectronBrowserContext::GetBackgroundFetchDelegate() {
 
 content::BackgroundSyncController*
 ElectronBrowserContext::GetBackgroundSyncController() {
-  return nullptr;
+  return weblayer::BackgroundSyncControllerFactory::GetForBrowserContext(this);
 }
 
 content::BrowsingDataRemoverDelegate*
