@@ -1,7 +1,9 @@
 #include "shell/renderer/preload_realm_context.h"
 
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"  // nocheck
+#include "third_party/blink/renderer/core/inspector/worker_thread_debugger.h"  // nocheck
 #include "third_party/blink/renderer/core/shadow_realm/shadow_realm_global_scope.h"  // nocheck
+#include "third_party/blink/renderer/core/workers/worker_or_worklet_global_scope.h"  // nocheck
 #include "third_party/blink/renderer/platform/bindings/script_state.h"  // nocheck
 #include "third_party/blink/renderer/platform/bindings/v8_dom_wrapper.h"  // nocheck
 #include "third_party/blink/renderer/platform/bindings/v8_per_context_data.h"  // nocheck
@@ -29,6 +31,7 @@ class ShadowRealmLifetimeController
         shadow_realm_global_scope_(shadow_realm_global_scope),
         shadow_realm_script_state_(shadow_realm_script_state) {
     SetContextLifecycleNotifier(initiator_execution_context);
+    RegisterDebugger(initiator_execution_context);
   }
 
   void Trace(blink::Visitor* visitor) const override {
@@ -49,6 +52,35 @@ class ShadowRealmLifetimeController
   }
 
  private:
+  v8::Isolate* realm_isolate() {
+    return shadow_realm_script_state_->GetIsolate();
+  }
+  v8::Local<v8::Context> realm_context() {
+    return shadow_realm_script_state_->GetContext();
+  }
+
+  void RegisterDebugger(blink::ExecutionContext* initiator_execution_context) {
+    v8::Local<v8::Context> context = realm_context();
+    v8::Isolate* isolate = realm_isolate();
+
+    if (initiator_execution_context->IsMainThreadWorkletGlobalScope()) {
+      // Set the human readable name for the world.
+      // DCHECK(!shadow_realm_global_scope->Name().empty());
+      // world_->SetNonMainWorldHumanReadableName(world_->GetWorldId(),
+      //                                          shadow_realm_global_scope->Name());
+    } else {
+      // Name new context for debugging. For main thread worklet global scopes
+      // this is done once the context is initialized.
+      blink::WorkerThreadDebugger* debugger =
+          blink::WorkerThreadDebugger::From(isolate);
+      const blink::KURL url_for_debugger("https://electron.org/preloadrealm");
+      const auto* worker_context =
+          To<blink::WorkerOrWorkletGlobalScope>(initiator_execution_context);
+      debugger->ContextCreated(worker_context->GetThread(), url_for_debugger,
+                               context);
+    }
+  }
+
   bool is_initiator_worker_or_worklet_;
   blink::Member<blink::ShadowRealmGlobalScope> shadow_realm_global_scope_;
   blink::Member<blink::ScriptState> shadow_realm_script_state_;
@@ -108,10 +140,9 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
   blink::MakeGarbageCollected<ShadowRealmLifetimeController>(
       initiator_execution_context, shadow_realm_global_scope, script_state);
 
+  LOG(INFO) << "***Created PreloadRealm context\n";
+
   return context;
 }
-
-// v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
-//     v8::Local<v8::Context> initiator_context);
 
 }  // namespace electron
