@@ -370,4 +370,14 @@ auto_filenames = {
     "typings/internal-ambient.d.ts",
     "typings/internal-electron.d.ts",
   ]
+
+  preload_realm_bundle_deps = [
+    "lib/common/webpack-globals-provider.ts",
+    "lib/preload_realm/init.ts",
+    "package.json",
+    "tsconfig.electron.json",
+    "tsconfig.json",
+    "typings/internal-ambient.d.ts",
+    "typings/internal-electron.d.ts",
+  ]
 }

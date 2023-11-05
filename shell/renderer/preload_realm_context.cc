@@ -1,14 +1,14 @@
 #include "shell/renderer/preload_realm_context.h"
 
-#include "third_party/blink/renderer/bindings/core/v8/script_controller.h"  // nocheck
-#include "third_party/blink/renderer/core/execution_context/execution_context.h"  // nocheck
-#include "third_party/blink/renderer/core/inspector/worker_thread_debugger.h"  // nocheck
-#include "third_party/blink/renderer/core/shadow_realm/shadow_realm_global_scope.h"  // nocheck
-#include "third_party/blink/renderer/core/workers/worker_or_worklet_global_scope.h"  // nocheck
-#include "third_party/blink/renderer/platform/bindings/script_state.h"  // nocheck
-#include "third_party/blink/renderer/platform/bindings/v8_dom_wrapper.h"  // nocheck
-#include "third_party/blink/renderer/platform/bindings/v8_per_context_data.h"  // nocheck
-#include "third_party/blink/renderer/platform/context_lifecycle_observer.h"  // nocheck
+#include "third_party/blink/renderer/bindings/core/v8/script_controller.h"  // nogncheck
+#include "third_party/blink/renderer/core/execution_context/execution_context.h"  // nogncheck
+#include "third_party/blink/renderer/core/inspector/worker_thread_debugger.h"  // nogncheck
+#include "third_party/blink/renderer/core/shadow_realm/shadow_realm_global_scope.h"  // nogncheck
+#include "third_party/blink/renderer/core/workers/worker_or_worklet_global_scope.h"  // nogncheck
+#include "third_party/blink/renderer/platform/bindings/script_state.h"  // nogncheck
+#include "third_party/blink/renderer/platform/bindings/v8_dom_wrapper.h"  // nogncheck
+#include "third_party/blink/renderer/platform/bindings/v8_per_context_data.h"  // nogncheck
+#include "third_party/blink/renderer/platform/context_lifecycle_observer.h"  // nogncheck
 #include "v8/include/v8-context.h"
 
 namespace electron {
