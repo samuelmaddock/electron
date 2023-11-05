@@ -1,5 +1,5 @@
 import { defineProperties } from '@electron/internal/common/define-properties';
-import { moduleList } from '@electron/internal/sandboxed_renderer/api/module-list';
+import { moduleList } from '@electron/internal/preload_realm/api/module-list';
 
 module.exports = {};
 

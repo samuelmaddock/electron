@@ -23,18 +23,37 @@ for (const prop of Object.keys(EventEmitter.prototype) as (keyof typeof process)
 }
 Object.setPrototypeOf(process, EventEmitter.prototype);
 
-// const electron = require('electron');
+const electron = require('electron');
 
-// const loadedModules = new Map<string, any>([
-//   ['electron', electron],
-//   ['electron/common', electron],
-//   ['events', events],
-//   ['node:events', events]
-// ]);
+const loadedModules = new Map<string, any>([
+  ['electron', electron],
+  ['electron/common', electron],
+  ['events', events],
+  ['node:events', events]
+]);
 
-// const loadableModules = new Map<string, Function>([
-//   ['timers', () => require('timers')],
-//   ['node:timers', () => require('timers')],
-//   ['url', () => require('url')],
-//   ['node:url', () => require('url')]
-// ]);
+const loadableModules = new Map<string, Function>([
+  // ['timers', () => require('timers')],
+  // ['node:timers', () => require('timers')],
+  ['url', () => require('url')],
+  ['node:url', () => require('url')]
+]);
+
+// This is the `require` function that will be visible to the preload script
+function preloadRequire (module: string) {
+  if (loadedModules.has(module)) {
+    return loadedModules.get(module);
+  }
+  if (loadableModules.has(module)) {
+    const loadedModule = loadableModules.get(module)!();
+    loadedModules.set(module, loadedModule);
+    return loadedModule;
+  }
+  throw new Error(`module not found: ${module}`);
+}
+
+// TODO: remove this
+(globalThis as any).test = {
+  process,
+  require: preloadRequire
+};
