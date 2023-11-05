@@ -23,6 +23,7 @@
 #include "shell/common/node_util.h"
 #include "shell/common/options_switches.h"
 #include "shell/renderer/electron_render_frame_observer.h"
+#include "shell/renderer/preload_realm_context.h"
 #include "third_party/blink/public/common/web_preferences/web_preferences.h"
 #include "third_party/blink/public/platform/scheduler/web_agent_group_scheduler.h"
 #include "third_party/blink/public/web/blink.h"
@@ -229,6 +230,12 @@ void ElectronSandboxedRendererClient::EmitProcessEvent(
   v8::Context::Scope context_scope(context);
 
   InvokeEmitProcessEvent(context, event_name);
+}
+
+void ElectronSandboxedRendererClient::DidInitializeWorkerContextOnWorkerThread(
+    v8::Local<v8::Context> context) {
+  // TODO(samuelmaddock):
+  OnCreatePreloadableV8Context(context);
 }
 
 }  // namespace electron
