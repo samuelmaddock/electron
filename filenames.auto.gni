@@ -372,7 +372,11 @@ auto_filenames = {
   ]
 
   preload_realm_bundle_deps = [
+    "lib/common/api/native-image.ts",
+    "lib/common/define-properties.ts",
     "lib/common/webpack-globals-provider.ts",
+    "lib/preload_realm/api/exports/electron.ts",
+    "lib/preload_realm/api/module-list.ts",
     "lib/preload_realm/init.ts",
     "package.json",
     "tsconfig.electron.json",

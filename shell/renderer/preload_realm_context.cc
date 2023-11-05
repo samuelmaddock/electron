@@ -1,5 +1,14 @@
 #include "shell/renderer/preload_realm_context.h"
 
+#include "base/command_line.h"
+#include "base/process/process_handle.h"
+#include "base/process/process_metrics.h"
+#include "shell/common/api/electron_bindings.h"
+#include "shell/common/gin_helper/dictionary.h"
+#include "shell/common/gin_helper/event_emitter_caller.h"
+#include "shell/common/node_bindings.h"
+#include "shell/common/node_includes.h"
+#include "shell/common/node_util.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_controller.h"  // nogncheck
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"  // nogncheck
 #include "third_party/blink/renderer/core/inspector/worker_thread_debugger.h"  // nogncheck
@@ -14,6 +23,58 @@
 namespace electron {
 
 namespace {
+
+const char kModuleCacheKey[] = "native-module-cache";
+
+v8::Local<v8::Object> GetModuleCache(v8::Isolate* isolate) {
+  auto context = isolate->GetCurrentContext();
+  gin_helper::Dictionary global(isolate, context->Global());
+  v8::Local<v8::Value> cache;
+
+  if (!global.GetHidden(kModuleCacheKey, &cache)) {
+    cache = v8::Object::New(isolate);
+    global.SetHidden(kModuleCacheKey, cache);
+  }
+
+  return cache->ToObject(context).ToLocalChecked();
+}
+
+// adapted from node.cc
+v8::Local<v8::Value> GetBinding(v8::Isolate* isolate,
+                                v8::Local<v8::String> key,
+                                gin_helper::Arguments* margs) {
+  v8::Local<v8::Object> exports;
+  std::string module_key = gin::V8ToString(isolate, key);
+  gin_helper::Dictionary cache(isolate, GetModuleCache(isolate));
+
+  if (cache.Get(module_key.c_str(), &exports)) {
+    return exports;
+  }
+
+  auto* mod = node::binding::get_linked_module(module_key.c_str());
+
+  if (!mod) {
+    char errmsg[1024];
+    snprintf(errmsg, sizeof(errmsg), "No such module: %s", module_key.c_str());
+    margs->ThrowError(errmsg);
+    return exports;
+  }
+
+  exports = v8::Object::New(isolate);
+  DCHECK_EQ(mod->nm_register_func, nullptr);
+  DCHECK_NE(mod->nm_context_register_func, nullptr);
+  mod->nm_context_register_func(exports, v8::Null(isolate),
+                                isolate->GetCurrentContext(), mod->nm_priv);
+  cache.Set(module_key.c_str(), exports);
+  return exports;
+}
+
+double Uptime() {
+  // TODO(samuelmaddock): Fix imports
+  // return (base::Time::Now() - base::Process::Current().CreationTime())
+  //     .InSecondsF();
+  return 0.0;
+}
 
 // This is a helper class to make the initiator ExecutionContext the owner
 // of a ShadowRealmGlobalScope and its ScriptState. When the initiator
@@ -33,6 +94,9 @@ class ShadowRealmLifetimeController
         shadow_realm_script_state_(shadow_realm_script_state) {
     SetContextLifecycleNotifier(initiator_execution_context);
     RegisterDebugger(initiator_execution_context);
+
+    metrics_ = base::ProcessMetrics::CreateCurrentProcessMetrics();
+    RunInitScript();
   }
 
   void Trace(blink::Visitor* visitor) const override {
@@ -61,8 +125,8 @@ class ShadowRealmLifetimeController
   }
 
   void RegisterDebugger(blink::ExecutionContext* initiator_execution_context) {
-    v8::Local<v8::Context> context = realm_context();
     v8::Isolate* isolate = realm_isolate();
+    v8::Local<v8::Context> context = realm_context();
 
     if (initiator_execution_context->IsMainThreadWorkletGlobalScope()) {
       // Set the human readable name for the world.
@@ -82,9 +146,47 @@ class ShadowRealmLifetimeController
     }
   }
 
+  void RunInitScript() {
+    v8::Isolate* isolate = realm_isolate();
+    v8::Local<v8::Context> context = realm_context();
+
+    v8::Context::Scope context_scope(context);
+    v8::MicrotasksScope script_scope(isolate,
+                                     v8::MicrotasksScope::kDoNotRunMicrotasks);
+
+    v8::Local<v8::Object> binding = v8::Object::New(isolate);
+
+    gin_helper::Dictionary b(isolate, binding);
+    b.SetMethod("get", GetBinding);
+    // b.SetMethod("createPreloadScript", CreatePreloadScript);
+
+    gin_helper::Dictionary process = gin::Dictionary::CreateEmpty(isolate);
+    b.Set("process", process);
+
+    ElectronBindings::BindProcess(isolate, &process, metrics_.get());
+
+    process.SetMethod("uptime", Uptime);
+    process.Set("argv", base::CommandLine::ForCurrentProcess()->argv());
+    process.SetReadOnly("pid", base::GetCurrentProcId());
+    process.SetReadOnly("sandboxed", true);
+    process.SetReadOnly("type", "preload_realm");
+    // END INITIALIZE BINDINGS
+
+    std::vector<v8::Local<v8::String>> preload_realm_bundle_params = {
+        node::FIXED_ONE_BYTE_STRING(isolate, "binding")};
+
+    std::vector<v8::Local<v8::Value>> preload_realm_bundle_args = {binding};
+
+    util::CompileAndCall(context, "electron/js2c/preload_realm_bundle",
+                         &preload_realm_bundle_params,
+                         &preload_realm_bundle_args, nullptr);
+  }
+
   bool is_initiator_worker_or_worklet_;
   blink::Member<blink::ShadowRealmGlobalScope> shadow_realm_global_scope_;
   blink::Member<blink::ScriptState> shadow_realm_script_state_;
+
+  std::unique_ptr<base::ProcessMetrics> metrics_;
 };
 
 }  // namespace
@@ -117,10 +219,11 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
           .As<v8::FunctionTemplate>()
           ->InstanceTemplate();
   v8::Local<v8::Object> global_proxy;  // Will request a new global proxy.
-  v8::Local<v8::Context> context =
-      v8::Context::New(isolate, &extension_configuration, global_template,
-                       global_proxy, v8::DeserializeInternalFieldsCallback(),
-                       initiator_execution_context->GetMicrotaskQueue());
+  v8::Local<v8::Context> context = v8::Context::New(
+      isolate, &extension_configuration, global_template, global_proxy,
+      v8::DeserializeInternalFieldsCallback(), nullptr);
+  // TODO: microtask queue invokes crash
+  //  initiator_execution_context->GetMicrotaskQueue());
   context->UseDefaultSecurityToken();
 
   // Associate the Blink object with the v8::Context.
