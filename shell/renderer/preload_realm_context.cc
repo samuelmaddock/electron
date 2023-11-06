@@ -1,6 +1,7 @@
 #include "shell/renderer/preload_realm_context.h"
 
 #include "base/command_line.h"
+#include "base/process/process.h"
 #include "base/process/process_handle.h"
 #include "base/process/process_metrics.h"
 #include "shell/common/api/electron_bindings.h"
@@ -70,10 +71,8 @@ v8::Local<v8::Value> GetBinding(v8::Isolate* isolate,
 }
 
 double Uptime() {
-  // TODO(samuelmaddock): Fix imports
-  // return (base::Time::Now() - base::Process::Current().CreationTime())
-  //     .InSecondsF();
-  return 0.0;
+  return (base::Time::Now() - base::Process::Current().CreationTime())
+      .InSecondsF();
 }
 
 // This is a helper class to make the initiator ExecutionContext the owner
@@ -151,8 +150,9 @@ class ShadowRealmLifetimeController
     v8::Local<v8::Context> context = realm_context();
 
     v8::Context::Scope context_scope(context);
-    v8::MicrotasksScope script_scope(isolate,
-                                     v8::MicrotasksScope::kDoNotRunMicrotasks);
+    v8::MicrotasksScope microtasks_scope(
+        isolate, context->GetMicrotaskQueue(),
+        v8::MicrotasksScope::kDoNotRunMicrotasks);
 
     v8::Local<v8::Object> binding = v8::Object::New(isolate);
 
@@ -170,7 +170,6 @@ class ShadowRealmLifetimeController
     process.SetReadOnly("pid", base::GetCurrentProcId());
     process.SetReadOnly("sandboxed", true);
     process.SetReadOnly("type", "preload_realm");
-    // END INITIALIZE BINDINGS
 
     std::vector<v8::Local<v8::String>> preload_realm_bundle_params = {
         node::FIXED_ONE_BYTE_STRING(isolate, "binding")};
@@ -219,11 +218,10 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
           .As<v8::FunctionTemplate>()
           ->InstanceTemplate();
   v8::Local<v8::Object> global_proxy;  // Will request a new global proxy.
-  v8::Local<v8::Context> context = v8::Context::New(
-      isolate, &extension_configuration, global_template, global_proxy,
-      v8::DeserializeInternalFieldsCallback(), nullptr);
-  // TODO: microtask queue invokes crash
-  //  initiator_execution_context->GetMicrotaskQueue());
+  v8::Local<v8::Context> context =
+      v8::Context::New(isolate, &extension_configuration, global_template,
+                       global_proxy, v8::DeserializeInternalFieldsCallback(),
+                       initiator_execution_context->GetMicrotaskQueue());
   context->UseDefaultSecurityToken();
 
   // Associate the Blink object with the v8::Context.
