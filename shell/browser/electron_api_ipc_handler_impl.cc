@@ -91,6 +91,13 @@ content::RenderFrameHost* ElectronApiIPCHandlerImpl::GetRenderFrameHost() {
 
 // static
 void ElectronApiIPCHandlerImpl::Create(
+    int process_id,
+    mojo::PendingAssociatedReceiver<mojom::ElectronApiIPC> receiver) {
+  // TODO:
+}
+
+// static
+void ElectronApiIPCHandlerImpl::Create(
     content::RenderFrameHost* frame_host,
     mojo::PendingAssociatedReceiver<mojom::ElectronApiIPC> receiver) {
   new ElectronApiIPCHandlerImpl(frame_host, std::move(receiver));

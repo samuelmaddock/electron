@@ -1579,6 +1579,12 @@ void ElectronBrowserClient::ExposeInterfacesToRenderer(
     service_manager::BinderRegistry* registry,
     blink::AssociatedInterfaceRegistry* associated_registry,
     content::RenderProcessHost* render_process_host) {
+  associated_registry->AddInterface<mojom::ElectronApiIPC>(base::BindRepeating(
+      [](int id,
+         mojo::PendingAssociatedReceiver<mojom::ElectronApiIPC> receiver) {
+        ElectronApiIPCHandlerImpl::Create(id, std::move(receiver));
+      },
+      render_process_host->GetID()));
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
   associated_registry->AddInterface<extensions::mojom::RendererHost>(
       base::BindRepeating(&extensions::RendererStartupHelper::BindForRenderer,

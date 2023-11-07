@@ -30,6 +30,10 @@ class ElectronApiIPCHandlerImpl : public mojom::ElectronApiIPC,
       content::RenderFrameHost* frame_host,
       mojo::PendingAssociatedReceiver<mojom::ElectronApiIPC> receiver);
 
+  static void Create(
+      int process_id,
+      mojo::PendingAssociatedReceiver<mojom::ElectronApiIPC> receiver);
+
   // disable copy
   ElectronApiIPCHandlerImpl(const ElectronApiIPCHandlerImpl&) = delete;
   ElectronApiIPCHandlerImpl& operator=(const ElectronApiIPCHandlerImpl&) =
