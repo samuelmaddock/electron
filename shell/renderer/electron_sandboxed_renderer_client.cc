@@ -246,7 +246,12 @@ void ElectronSandboxedRendererClient::WillEvaluateServiceWorkerOnWorkerThread(
   RendererClientBase::WillEvaluateServiceWorkerOnWorkerThread(
       context_proxy, v8_context, service_worker_version_id,
       service_worker_scope, script_url);
-  OnCreatePreloadableV8Context(v8_context);
+  // TODO: store content_proxy on preload context using native data or aligned
+  // fields?
+  v8::MaybeLocal<v8::Context> preload_context =
+      OnCreatePreloadableV8Context(v8_context);
+  if (!preload_context.IsEmpty())
+    SetServiceWorkerProxy(preload_context.ToLocalChecked(), context_proxy);
 }
 
 }  // namespace electron
