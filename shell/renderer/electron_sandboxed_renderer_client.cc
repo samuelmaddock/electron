@@ -234,8 +234,19 @@ void ElectronSandboxedRendererClient::EmitProcessEvent(
 
 void ElectronSandboxedRendererClient::DidInitializeWorkerContextOnWorkerThread(
     v8::Local<v8::Context> context) {
-  // TODO(samuelmaddock):
-  OnCreatePreloadableV8Context(context);
+  // TODO(samuelmaddock): create preload realm for workers?
+}
+
+void ElectronSandboxedRendererClient::WillEvaluateServiceWorkerOnWorkerThread(
+    blink::WebServiceWorkerContextProxy* context_proxy,
+    v8::Local<v8::Context> v8_context,
+    int64_t service_worker_version_id,
+    const GURL& service_worker_scope,
+    const GURL& script_url) {
+  RendererClientBase::WillEvaluateServiceWorkerOnWorkerThread(
+      context_proxy, v8_context, service_worker_version_id,
+      service_worker_scope, script_url);
+  OnCreatePreloadableV8Context(v8_context);
 }
 
 }  // namespace electron
