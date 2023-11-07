@@ -22,6 +22,7 @@
 #include "shell/common/gin_helper/promise.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/world_ids.h"
+#include "shell/renderer/preload_realm_context.h"
 #include "third_party/blink/public/web/web_blob.h"
 #include "third_party/blink/public/web/web_element.h"
 #include "third_party/blink/public/web/web_local_frame.h"
@@ -659,6 +660,44 @@ v8::MaybeLocal<v8::Object> CreateProxyForAPI(
   }
 }
 
+void ExposeAPI(v8::Isolate* isolate,
+               v8::Local<v8::Context> source_context,
+               v8::Local<v8::Context> target_context,
+               const std::string& key,
+               v8::Local<v8::Value> api,
+               gin_helper::Arguments* args) {
+  gin_helper::Dictionary global(target_context->GetIsolate(),
+                                target_context->Global());
+
+  if (global.Has(key)) {
+    args->ThrowError(
+        "Cannot bind an API on top of an existing property on the window "
+        "object");
+    return;
+  }
+
+  context_bridge::ObjectCache object_cache;
+  v8::Context::Scope target_context_scope(target_context);
+
+  v8::MaybeLocal<v8::Value> maybe_proxy = PassValueToOtherContext(
+      source_context, target_context, api, source_context->Global(),
+      &object_cache, false, 0, BridgeErrorTarget::kSource);
+  if (maybe_proxy.IsEmpty())
+    return;
+  auto proxy = maybe_proxy.ToLocalChecked();
+
+  if (base::FeatureList::IsEnabled(features::kContextBridgeMutability)) {
+    global.Set(key, proxy);
+    return;
+  }
+
+  if (proxy->IsObject() && !proxy->IsTypedArray() &&
+      !DeepFreeze(proxy.As<v8::Object>(), target_context))
+    return;
+
+  global.SetReadOnlyNonConfigurable(key, proxy);
+}
+
 void ExposeAPIInWorld(v8::Isolate* isolate,
                       const int world_id,
                       const std::string& key,
@@ -677,43 +716,23 @@ void ExposeAPIInWorld(v8::Isolate* isolate,
           ? frame->MainWorldScriptContext()
           : frame->GetScriptContextFromWorldId(isolate, world_id);
 
-  gin_helper::Dictionary global(target_context->GetIsolate(),
-                                target_context->Global());
-
-  if (global.Has(key)) {
-    args->ThrowError(
-        "Cannot bind an API on top of an existing property on the window "
-        "object");
-    return;
-  }
-
   v8::Local<v8::Context> electron_isolated_context =
       frame->GetScriptContextFromWorldId(args->isolate(),
                                          WorldIDs::ISOLATED_WORLD_ID);
 
-  {
-    context_bridge::ObjectCache object_cache;
-    v8::Context::Scope target_context_scope(target_context);
+  ExposeAPI(isolate, electron_isolated_context, target_context, key, api, args);
+}
 
-    v8::MaybeLocal<v8::Value> maybe_proxy = PassValueToOtherContext(
-        electron_isolated_context, target_context, api,
-        electron_isolated_context->Global(), &object_cache, false, 0,
-        BridgeErrorTarget::kSource);
-    if (maybe_proxy.IsEmpty())
-      return;
-    auto proxy = maybe_proxy.ToLocalChecked();
-
-    if (base::FeatureList::IsEnabled(features::kContextBridgeMutability)) {
-      global.Set(key, proxy);
-      return;
-    }
-
-    if (proxy->IsObject() && !proxy->IsTypedArray() &&
-        !DeepFreeze(proxy.As<v8::Object>(), target_context))
-      return;
-
-    global.SetReadOnlyNonConfigurable(key, proxy);
-  }
+void ExposeAPIInInitiatorWorld(v8::Isolate* isolate,
+                               const std::string& key,
+                               v8::Local<v8::Value> api,
+                               gin_helper::Arguments* args) {
+  v8::Local<v8::Context> source_context = isolate->GetCurrentContext();
+  v8::MaybeLocal<v8::Context> target_context =
+      electron::GetInitiatorContext(source_context);
+  DCHECK(!target_context.IsEmpty());
+  ExposeAPI(isolate, source_context, target_context.ToLocalChecked(), key, api,
+            args);
 }
 
 gin_helper::Dictionary TraceKeyPath(const gin_helper::Dictionary& start,
@@ -831,6 +850,8 @@ void Initialize(v8::Local<v8::Object> exports,
                 void* priv) {
   v8::Isolate* isolate = context->GetIsolate();
   gin_helper::Dictionary dict(isolate, exports);
+  dict.SetMethod("exposeAPIInInitiatorWorld",
+                 &electron::api::ExposeAPIInInitiatorWorld);
   dict.SetMethod("exposeAPIInWorld", &electron::api::ExposeAPIInWorld);
   dict.SetMethod("_overrideGlobalValueFromIsolatedWorld",
                  &electron::api::OverrideGlobalValueFromIsolatedWorld);

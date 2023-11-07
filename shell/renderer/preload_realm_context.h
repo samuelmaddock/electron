@@ -9,6 +9,8 @@ class WebServiceWorkerContextProxy;
 
 namespace electron {
 
+v8::MaybeLocal<v8::Context> GetInitiatorContext(v8::Local<v8::Context> context);
+
 void SetServiceWorkerProxy(v8::Local<v8::Context> context,
                            blink::WebServiceWorkerContextProxy* proxy);
 blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy(
