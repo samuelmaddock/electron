@@ -89,10 +89,12 @@ class ShadowRealmLifetimeController
       public blink::ContextLifecycleObserver {
  public:
   explicit ShadowRealmLifetimeController(
+      v8::Local<v8::Context> initiator_context,
       blink::ExecutionContext* initiator_execution_context,
       blink::ShadowRealmGlobalScope* shadow_realm_global_scope,
       blink::ScriptState* shadow_realm_script_state)
-      : initiator_execution_context_(initiator_execution_context),
+      : initiator_context_(initiator_context),
+        initiator_execution_context_(initiator_execution_context),
         is_initiator_worker_or_worklet_(
             initiator_execution_context->IsWorkerOrWorkletGlobalScope()),
         shadow_realm_global_scope_(shadow_realm_global_scope),
@@ -123,6 +125,8 @@ class ShadowRealmLifetimeController
     visitor->Trace(shadow_realm_script_state_);
     ContextLifecycleObserver::Trace(visitor);
   }
+
+  v8::Local<v8::Context> GetInitiatorContext() { return initiator_context_; }
 
   void SetServiceWorkerProxy(blink::WebServiceWorkerContextProxy* proxy) {
     DCHECK(!proxy_);
@@ -209,6 +213,7 @@ class ShadowRealmLifetimeController
                          &preload_realm_bundle_args, nullptr);
   }
 
+  v8::Local<v8::Context> initiator_context_;
   const blink::Member<blink::ExecutionContext> initiator_execution_context_;
   bool is_initiator_worker_or_worklet_;
   blink::Member<blink::ShadowRealmGlobalScope> shadow_realm_global_scope_;
@@ -219,6 +224,14 @@ class ShadowRealmLifetimeController
 };
 
 }  // namespace
+
+v8::MaybeLocal<v8::Context> GetInitiatorContext(
+    v8::Local<v8::Context> context) {
+  auto* controller = ShadowRealmLifetimeController::From(context);
+  if (controller)
+    return controller->GetInitiatorContext();
+  return v8::MaybeLocal<v8::Context>();
+}
 
 void SetServiceWorkerProxy(v8::Local<v8::Context> context,
                            blink::WebServiceWorkerContextProxy* proxy) {
@@ -287,7 +300,8 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
   // Make the initiator execution context the owner of the
   // ShadowRealmGlobalScope and the ScriptState.
   blink::MakeGarbageCollected<ShadowRealmLifetimeController>(
-      initiator_execution_context, shadow_realm_global_scope, script_state);
+      initiator_context, initiator_execution_context, shadow_realm_global_scope,
+      script_state);
 
   return context;
 }

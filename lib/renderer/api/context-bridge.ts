@@ -15,6 +15,12 @@ const contextBridge: Electron.ContextBridge = {
   }
 };
 
+// TODO(samuelmaddock): proper types
+(contextBridge as any).exposeInInitiatorWorld = (key: string, api: any) => {
+  // checkContextIsolationEnabled();
+  return binding.exposeAPIInInitiatorWorld(key, api);
+};
+
 export default contextBridge;
 
 export const internalContextBridge = {
