@@ -4,6 +4,7 @@
 #include "base/process/process.h"
 #include "base/process/process_handle.h"
 #include "base/process/process_metrics.h"
+#include "gin/public/gin_embedders.h"
 #include "shell/common/api/electron_bindings.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/event_emitter_caller.h"
@@ -24,6 +25,10 @@
 namespace electron {
 
 namespace {
+
+static constexpr int kElectronContextEmbedderDataIndex =
+    static_cast<int>(gin::kPerContextDataStartIndex) +
+    static_cast<int>(gin::kEmbedderElectron);
 
 const char kModuleCacheKey[] = "native-module-cache";
 
@@ -87,21 +92,44 @@ class ShadowRealmLifetimeController
       blink::ExecutionContext* initiator_execution_context,
       blink::ShadowRealmGlobalScope* shadow_realm_global_scope,
       blink::ScriptState* shadow_realm_script_state)
-      : is_initiator_worker_or_worklet_(
+      : initiator_execution_context_(initiator_execution_context),
+        is_initiator_worker_or_worklet_(
             initiator_execution_context->IsWorkerOrWorkletGlobalScope()),
         shadow_realm_global_scope_(shadow_realm_global_scope),
         shadow_realm_script_state_(shadow_realm_script_state) {
     SetContextLifecycleNotifier(initiator_execution_context);
     RegisterDebugger(initiator_execution_context);
 
+    realm_context()->SetAlignedPointerInEmbedderData(
+        kElectronContextEmbedderDataIndex, static_cast<void*>(this));
+
     metrics_ = base::ProcessMetrics::CreateCurrentProcessMetrics();
     RunInitScript();
+  }
+
+  static ShadowRealmLifetimeController* From(v8::Local<v8::Context> context) {
+    if (context->GetNumberOfEmbedderDataFields() <=
+        kElectronContextEmbedderDataIndex) {
+      return nullptr;
+    }
+    auto* controller = static_cast<ShadowRealmLifetimeController*>(
+        context->GetAlignedPointerFromEmbedderData(
+            kElectronContextEmbedderDataIndex));
+    return controller;
   }
 
   void Trace(blink::Visitor* visitor) const override {
     visitor->Trace(shadow_realm_global_scope_);
     visitor->Trace(shadow_realm_script_state_);
     ContextLifecycleObserver::Trace(visitor);
+  }
+
+  void SetServiceWorkerProxy(blink::WebServiceWorkerContextProxy* proxy) {
+    DCHECK(!proxy_);
+    proxy_ = proxy;
+  }
+  blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy() {
+    return proxy_;
   }
 
  protected:
@@ -181,14 +209,29 @@ class ShadowRealmLifetimeController
                          &preload_realm_bundle_args, nullptr);
   }
 
+  const blink::Member<blink::ExecutionContext> initiator_execution_context_;
   bool is_initiator_worker_or_worklet_;
   blink::Member<blink::ShadowRealmGlobalScope> shadow_realm_global_scope_;
   blink::Member<blink::ScriptState> shadow_realm_script_state_;
 
   std::unique_ptr<base::ProcessMetrics> metrics_;
+  raw_ptr<blink::WebServiceWorkerContextProxy> proxy_;
 };
 
 }  // namespace
+
+void SetServiceWorkerProxy(v8::Local<v8::Context> context,
+                           blink::WebServiceWorkerContextProxy* proxy) {
+  auto* controller = ShadowRealmLifetimeController::From(context);
+  if (controller)
+    controller->SetServiceWorkerProxy(proxy);
+}
+
+blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy(
+    v8::Local<v8::Context> context) {
+  auto* controller = ShadowRealmLifetimeController::From(context);
+  return controller ? controller->GetServiceWorkerProxy() : nullptr;
+}
 
 v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
     v8::Local<v8::Context> initiator_context) {
