@@ -246,11 +246,6 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
   blink::MakeGarbageCollected<ShadowRealmLifetimeController>(
       initiator_execution_context, shadow_realm_global_scope, script_state);
 
-  LOG(INFO) << "***Created PreloadRealm context\n";
-
-  // TODO: why is URL not set in shadow realm even though its set to
-  // `Exposed=*` in WebIDL?
-
   return context;
 }
 
