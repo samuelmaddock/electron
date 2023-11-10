@@ -1,6 +1,7 @@
 #include "shell/renderer/preload_realm_context.h"
 
 #include "base/command_line.h"
+#include "base/debug/stack_trace.h"
 #include "base/process/process.h"
 #include "base/process/process_handle.h"
 #include "base/process/process_metrics.h"
@@ -89,12 +90,11 @@ class ShadowRealmLifetimeController
       public blink::ContextLifecycleObserver {
  public:
   explicit ShadowRealmLifetimeController(
-      v8::Local<v8::Context> initiator_context,
       blink::ExecutionContext* initiator_execution_context,
+      blink::ScriptState* initiator_script_state,
       blink::ShadowRealmGlobalScope* shadow_realm_global_scope,
       blink::ScriptState* shadow_realm_script_state)
-      : initiator_context_(initiator_context),
-        initiator_execution_context_(initiator_execution_context),
+      : initiator_script_state_(initiator_script_state),
         is_initiator_worker_or_worklet_(
             initiator_execution_context->IsWorkerOrWorkletGlobalScope()),
         shadow_realm_global_scope_(shadow_realm_global_scope),
@@ -109,24 +109,38 @@ class ShadowRealmLifetimeController
     RunInitScript();
   }
 
+  ~ShadowRealmLifetimeController() override {
+    // DCHECK(shadow_realm_script_state_.IsSet());
+    // TODO: why is this being called early?
+    LOG(INFO) << "*** ~ShadowRealmLifetimeController\n";
+    LOG(INFO) << base::debug::StackTrace();
+  }
+
   static ShadowRealmLifetimeController* From(v8::Local<v8::Context> context) {
     if (context->GetNumberOfEmbedderDataFields() <=
         kElectronContextEmbedderDataIndex) {
       return nullptr;
     }
+    // TODO: this is not always valid?
     auto* controller = static_cast<ShadowRealmLifetimeController*>(
         context->GetAlignedPointerFromEmbedderData(
             kElectronContextEmbedderDataIndex));
+    CHECK(controller);
     return controller;
   }
 
   void Trace(blink::Visitor* visitor) const override {
+    visitor->Trace(initiator_script_state_);
     visitor->Trace(shadow_realm_global_scope_);
     visitor->Trace(shadow_realm_script_state_);
     ContextLifecycleObserver::Trace(visitor);
   }
 
-  v8::Local<v8::Context> GetInitiatorContext() { return initiator_context_; }
+  v8::MaybeLocal<v8::Context> GetInitiatorContext() {
+    return initiator_script_state_->ContextIsValid()
+      ? initiator_script_state_->GetContext()
+      : v8::MaybeLocal<v8::Context>();
+  }
 
   void SetServiceWorkerProxy(blink::WebServiceWorkerContextProxy* proxy) {
     DCHECK(!proxy_);
@@ -138,6 +152,9 @@ class ShadowRealmLifetimeController
 
  protected:
   void ContextDestroyed() override {
+    LOG(INFO) << "***ShadowRealmLifetimeController::ContextDestroyed\n";
+    realm_context()->SetAlignedPointerInEmbedderData(
+        kElectronContextEmbedderDataIndex, nullptr);
     shadow_realm_script_state_->DisposePerContextData();
     if (is_initiator_worker_or_worklet_) {
       shadow_realm_script_state_->DissociateContext();
@@ -213,8 +230,7 @@ class ShadowRealmLifetimeController
                          &preload_realm_bundle_args, nullptr);
   }
 
-  v8::Local<v8::Context> initiator_context_;
-  const blink::Member<blink::ExecutionContext> initiator_execution_context_;
+  const blink::WeakMember<blink::ScriptState> initiator_script_state_;
   bool is_initiator_worker_or_worklet_;
   blink::Member<blink::ShadowRealmGlobalScope> shadow_realm_global_scope_;
   blink::Member<blink::ScriptState> shadow_realm_script_state_;
@@ -223,10 +239,25 @@ class ShadowRealmLifetimeController
   raw_ptr<blink::WebServiceWorkerContextProxy> proxy_;
 };
 
+v8::Local<v8::Object> WrapShadowRealmLifetimeController(v8::Isolate* isolate, ShadowRealmLifetimeController* object) {
+  v8::Local<v8::ObjectTemplate> local = v8::ObjectTemplate::New(isolate);
+  local->SetInternalFieldCount(1);
+
+  v8::Local<v8::Object> result = local->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+  result->SetInternalField(0, v8::External::New(isolate, object));
+
+  return result;
+}
+
 }  // namespace
 
 v8::MaybeLocal<v8::Context> GetInitiatorContext(
     v8::Local<v8::Context> context) {
+  DCHECK(!context.IsEmpty());
+  blink::ExecutionContext* execution_context =
+      blink::ExecutionContext::From(context);
+  if (!execution_context->IsShadowRealmGlobalScope())
+    return v8::MaybeLocal<v8::Context>();
   auto* controller = ShadowRealmLifetimeController::From(context);
   if (controller)
     return controller->GetInitiatorContext();
@@ -248,6 +279,9 @@ blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy(
 
 v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
     v8::Local<v8::Context> initiator_context) {
+  blink::ScriptState* initiator_script_state =
+      blink::ScriptState::MaybeFrom(initiator_context);
+  DCHECK(initiator_script_state);
   blink::ExecutionContext* initiator_execution_context =
       blink::ExecutionContext::From(initiator_context);
   DCHECK(initiator_execution_context);
@@ -299,9 +333,15 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
 
   // Make the initiator execution context the owner of the
   // ShadowRealmGlobalScope and the ScriptState.
-  blink::MakeGarbageCollected<ShadowRealmLifetimeController>(
-      initiator_context, initiator_execution_context, shadow_realm_global_scope,
+  // TODO: don't make this GC'd?
+  auto* controller = blink::MakeGarbageCollected<ShadowRealmLifetimeController>(
+      initiator_execution_context, initiator_script_state, shadow_realm_global_scope,
       script_state);
+
+  v8::Local<v8::Object> wrapper = WrapShadowRealmLifetimeController(isolate, controller);
+
+  gin_helper::Dictionary global(isolate, initiator_context->Global());
+  global.SetHidden("preloadRealm", wrapper);
 
   return context;
 }
