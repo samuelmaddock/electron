@@ -378,6 +378,7 @@ auto_filenames = {
     "lib/preload_realm/api/exports/electron.ts",
     "lib/preload_realm/api/module-list.ts",
     "lib/preload_realm/init.ts",
+    "lib/renderer/api/context-bridge.ts",
     "lib/renderer/api/ipc-renderer.ts",
     "package.json",
     "tsconfig.electron.json",

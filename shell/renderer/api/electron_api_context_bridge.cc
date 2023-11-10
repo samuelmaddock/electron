@@ -385,22 +385,22 @@ v8::MaybeLocal<v8::Value> PassValueToOtherContext(
   }
 
   // Custom logic to "clone" Element references
-  blink::WebElement elem =
-      blink::WebElement::FromV8Value(destination_context->GetIsolate(), value);
-  if (!elem.IsNull()) {
-    v8::Context::Scope destination_context_scope(destination_context);
-    return v8::MaybeLocal<v8::Value>(
-        elem.ToV8Value(destination_context->GetIsolate()));
-  }
+  // blink::WebElement elem =
+  //     blink::WebElement::FromV8Value(destination_context->GetIsolate(), value);
+  // if (!elem.IsNull()) {
+  //   v8::Context::Scope destination_context_scope(destination_context);
+  //   return v8::MaybeLocal<v8::Value>(
+  //       elem.ToV8Value(destination_context->GetIsolate()));
+  // }
 
-  // Custom logic to "clone" Blob references
-  blink::WebBlob blob =
-      blink::WebBlob::FromV8Value(destination_context->GetIsolate(), value);
-  if (!blob.IsNull()) {
-    v8::Context::Scope destination_context_scope(destination_context);
-    return v8::MaybeLocal<v8::Value>(
-        blob.ToV8Value(destination_context->GetIsolate()));
-  }
+  // // Custom logic to "clone" Blob references
+  // blink::WebBlob blob =
+  //     blink::WebBlob::FromV8Value(destination_context->GetIsolate(), value);
+  // if (!blob.IsNull()) {
+  //   v8::Context::Scope destination_context_scope(destination_context);
+  //   return v8::MaybeLocal<v8::Value>(
+  //       blob.ToV8Value(destination_context->GetIsolate()));
+  // }
 
   // Proxy all objects
   if (IsPlainObject(value)) {
@@ -666,6 +666,8 @@ void ExposeAPI(v8::Isolate* isolate,
                const std::string& key,
                v8::Local<v8::Value> api,
                gin_helper::Arguments* args) {
+  DCHECK(!target_context.IsEmpty());
+  v8::Context::Scope target_context_scope(target_context);
   gin_helper::Dictionary global(target_context->GetIsolate(),
                                 target_context->Global());
 
@@ -677,7 +679,6 @@ void ExposeAPI(v8::Isolate* isolate,
   }
 
   context_bridge::ObjectCache object_cache;
-  v8::Context::Scope target_context_scope(target_context);
 
   v8::MaybeLocal<v8::Value> maybe_proxy = PassValueToOtherContext(
       source_context, target_context, api, source_context->Global(),
@@ -730,6 +731,7 @@ void ExposeAPIInInitiatorWorld(v8::Isolate* isolate,
   v8::Local<v8::Context> source_context = isolate->GetCurrentContext();
   v8::MaybeLocal<v8::Context> target_context =
       electron::GetInitiatorContext(source_context);
+  DCHECK(!source_context.IsEmpty());
   DCHECK(!target_context.IsEmpty());
   ExposeAPI(isolate, source_context, target_context.ToLocalChecked(), key, api,
             args);
