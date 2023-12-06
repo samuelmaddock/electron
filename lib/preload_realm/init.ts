@@ -1,6 +1,7 @@
 import * as events from 'events';
 
-import type * as ipcRendererInternalModule from '@electron/internal/renderer/ipc-renderer-internal';
+// import type * as ipcRendererInternalModule from '@electron/internal/renderer/ipc-renderer-internal';
+// import { IPC_MESSAGES } from '../common/ipc-messages';
 
 declare const binding: {
   get: (name: string) => any;
@@ -25,10 +26,26 @@ for (const prop of Object.keys(EventEmitter.prototype) as (keyof typeof process)
 }
 Object.setPrototypeOf(process, EventEmitter.prototype);
 
-const { ipcRendererInternal } = require('@electron/internal/renderer/ipc-renderer-internal') as typeof ipcRendererInternalModule;
+// const { ipcRendererInternal } = require('@electron/internal/renderer/ipc-renderer-internal') as typeof ipcRendererInternalModule;
+// const ipcRendererUtils = require('@electron/internal/renderer/ipc-renderer-internal-utils') as typeof ipcRendererUtilsModule;
 
 // Test message
-ipcRendererInternal.send('foo');
+// const {
+//   preloadScripts,
+//   process: processProps
+// } = ipcRendererUtils.invokeSync<{
+//   preloadScripts: {
+//     preloadPath: string;
+//     preloadSrc: string | null;
+//     preloadError: null | Error;
+//   }[];
+//   process: NodeJS.Process;
+// }>(IPC_MESSAGES.BROWSER_SANDBOX_LOAD);
+
+// console.log('***preloadRealm', {
+//   preloadScripts,
+//   processProps,
+// });
 
 const electron = require('electron');
 

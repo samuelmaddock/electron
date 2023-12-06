@@ -65,6 +65,7 @@
 #include "shell/browser/api/electron_api_service_worker_context.h"
 #include "shell/browser/api/electron_api_web_frame_main.h"
 #include "shell/browser/api/electron_api_web_request.h"
+#include "shell/browser/api/ipc_helper.h"
 #include "shell/browser/browser.h"
 #include "shell/browser/electron_browser_context.h"
 #include "shell/browser/electron_browser_main_parts.h"
@@ -548,7 +549,8 @@ Session::Session(v8::Isolate* isolate, ElectronBrowserContext* browser_context)
     : isolate_(isolate),
       network_emulation_token_(base::UnguessableToken::Create()),
       browser_context_{
-          raw_ref<ElectronBrowserContext>::from_ptr(browser_context)} {
+          raw_ref<ElectronBrowserContext>::from_ptr(browser_context)},
+      ipc_helper_(new IpcHelper<Session>(this)) {
   // Observe DownloadManager to get download notifications.
   browser_context->GetDownloadManager()->AddObserver(this);
 
@@ -1530,6 +1532,12 @@ gin::Handle<Session> Session::CreateFrom(
   // The Sessions should never be garbage collected, since the common pattern is
   // to use partition strings, instead of using the Session object directly.
   handle->Pin(isolate);
+
+  v8::TryCatch try_catch(isolate);
+  gin_helper::CallMethod(isolate, handle.get(), "_init");
+  if (try_catch.HasCaught()) {
+    node::errors::TriggerUncaughtException(isolate, try_catch);
+  }
 
   App::Get()->EmitWithoutEvent("session-created", handle);
 

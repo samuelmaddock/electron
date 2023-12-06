@@ -18,6 +18,12 @@ class RenderProcessHost;
 }
 
 namespace electron {
+class ElectronBrowserContext;
+
+namespace api {
+class Session;
+}
+
 class ElectronApiSWIPCHandlerImpl : public mojom::ElectronApiIPC,
                                     public content::RenderProcessHostObserver {
  public:
@@ -57,6 +63,9 @@ class ElectronApiSWIPCHandlerImpl : public mojom::ElectronApiIPC,
   }
 
  private:
+  ElectronBrowserContext* GetBrowserContext();
+  api::Session* GetSession();
+
   // content::RenderProcessHostObserver
   void RenderProcessExited(
       content::RenderProcessHost* host,
