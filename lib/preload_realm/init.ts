@@ -1,8 +1,6 @@
 import * as events from 'events';
-// import { IPC_MESSAGES } from '@electron/internal/common/ipc-messages';
 
-// import type * as ipcRendererUtilsModule from '@electron/internal/renderer/ipc-renderer-internal-utils';
-// import type * as ipcRendererInternalModule from '@electron/internal/renderer/ipc-renderer-internal';
+import type * as ipcRendererInternalModule from '@electron/internal/renderer/ipc-renderer-internal';
 
 declare const binding: {
   get: (name: string) => any;
@@ -27,8 +25,10 @@ for (const prop of Object.keys(EventEmitter.prototype) as (keyof typeof process)
 }
 Object.setPrototypeOf(process, EventEmitter.prototype);
 
-// const { ipcRendererInternal } = require('@electron/internal/renderer/ipc-renderer-internal') as typeof ipcRendererInternalModule;
-// const ipcRendererUtils = require('@electron/internal/renderer/ipc-renderer-internal-utils') as typeof ipcRendererUtilsModule;
+const { ipcRendererInternal } = require('@electron/internal/renderer/ipc-renderer-internal') as typeof ipcRendererInternalModule;
+
+// Test message
+ipcRendererInternal.send('foo');
 
 const electron = require('electron');
 
