@@ -19,6 +19,13 @@ Object.defineProperty(systemPickerVideoSource, 'id', {
 systemPickerVideoSource.name = '';
 Object.freeze(systemPickerVideoSource);
 
+const addReturnValueToEvent = (event: Electron.IpcMainEvent) => {
+  Object.defineProperty(event, 'returnValue', {
+    set: (value) => event._replyChannel.sendReply(value),
+    get: () => {}
+  });
+};
+
 Session.prototype._init = function () {
   // Dispatch IPC messages to the ipc module.
   this.on('-ipc-message' as any, function (this: Electron.Session, event: Electron.IpcMainEvent, internal: boolean, channel: string, args: any[]) {
@@ -58,7 +65,7 @@ Session.prototype._init = function () {
 
   this.on('-ipc-message-sync' as any, function (this: Electron.WebContents, event: Electron.IpcMainEvent, internal: boolean, channel: string, args: any[]) {
     // addSenderToEvent(event, this);
-    // addReturnValueToEvent(event);
+    addReturnValueToEvent(event);
     if (internal) {
       ipcMainInternal.emit(channel, event, ...args);
     } else {

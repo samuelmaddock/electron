@@ -55,7 +55,15 @@ const getPreloadScript = async function (preloadPath: string) {
 };
 
 ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_SANDBOX_LOAD, async function (event) {
-  const preloadPaths = event.sender._getPreloadPaths();
+  let preloadPaths: string[];
+
+  if (event.sender) {
+    preloadPaths = event.sender._getPreloadPaths();
+  } else if ((event as any).session) {
+    preloadPaths = (event as any).session.getPreloads();
+  } else {
+    preloadPaths = [];
+  }
 
   return {
     preloadScripts: await Promise.all(preloadPaths.map(path => getPreloadScript(path))),
@@ -75,5 +83,5 @@ ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_NONSANDBOX_LOAD, function (event) {
 });
 
 ipcMainInternal.on(IPC_MESSAGES.BROWSER_PRELOAD_ERROR, function (event, preloadPath: string, error: Error) {
-  event.sender.emit('preload-error', event, preloadPath, error);
+  event.sender?.emit('preload-error', event, preloadPath, error);
 });

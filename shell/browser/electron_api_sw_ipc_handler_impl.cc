@@ -70,7 +70,7 @@ void ElectronApiSWIPCHandlerImpl::Message(bool internal,
   auto* session = GetSession();
   if (session) {
     session->ipc_helper()->Message(internal, channel, std::move(arguments),
-                                   nullptr);
+                                   GetBrowserContext());
   }
 }
 void ElectronApiSWIPCHandlerImpl::Invoke(bool internal,
@@ -80,7 +80,7 @@ void ElectronApiSWIPCHandlerImpl::Invoke(bool internal,
   auto* session = GetSession();
   if (session) {
     session->ipc_helper()->Invoke(internal, channel, std::move(arguments),
-                                  std::move(callback), nullptr);
+                                  std::move(callback), GetBrowserContext());
   }
 }
 
@@ -90,7 +90,7 @@ void ElectronApiSWIPCHandlerImpl::ReceivePostMessage(
   auto* session = GetSession();
   if (session) {
     session->ipc_helper()->ReceivePostMessage(channel, std::move(message),
-                                              nullptr);
+                                              GetBrowserContext());
   }
 }
 
@@ -101,7 +101,8 @@ void ElectronApiSWIPCHandlerImpl::MessageSync(bool internal,
   auto* session = GetSession();
   if (session) {
     session->ipc_helper()->MessageSync(internal, channel, std::move(arguments),
-                                       std::move(callback), nullptr);
+                                       std::move(callback),
+                                       GetBrowserContext());
   }
 }
 
@@ -110,7 +111,8 @@ void ElectronApiSWIPCHandlerImpl::MessageHost(
     blink::CloneableMessage arguments) {
   auto* session = GetSession();
   if (session) {
-    session->ipc_helper()->MessageHost(channel, std::move(arguments), nullptr);
+    session->ipc_helper()->MessageHost(channel, std::move(arguments),
+                                       GetBrowserContext());
   }
 }
 
