@@ -76,6 +76,16 @@ v8::Local<v8::Value> GetBinding(v8::Isolate* isolate,
   return exports;
 }
 
+v8::Local<v8::Value> CreatePreloadScript(v8::Isolate* isolate,
+                                         v8::Local<v8::String> source) {
+  auto context = isolate->GetCurrentContext();
+  auto maybe_script = v8::Script::Compile(context, source);
+  v8::Local<v8::Script> script;
+  if (!maybe_script.ToLocal(&script))
+    return v8::Local<v8::Value>();
+  return script->Run(context).ToLocalChecked();
+}
+
 double Uptime() {
   return (base::Time::Now() - base::Process::Current().CreationTime())
       .InSecondsF();
@@ -205,7 +215,7 @@ class ShadowRealmLifetimeController
 
     gin_helper::Dictionary b(isolate, binding);
     b.SetMethod("get", GetBinding);
-    // b.SetMethod("createPreloadScript", CreatePreloadScript);
+    b.SetMethod("createPreloadScript", CreatePreloadScript);
 
     gin_helper::Dictionary process = gin::Dictionary::CreateEmpty(isolate);
     b.Set("process", process);

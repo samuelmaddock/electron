@@ -13,10 +13,6 @@
 #include "shell/common/gin_helper/event.h"
 #include "shell/common/gin_helper/event_emitter.h"
 
-namespace content {
-class RenderFrameHost;
-}
-
 namespace electron {
 
 class ElectronBrowserContext;
@@ -41,7 +37,7 @@ class IpcHelper {
   // this.emit(name, new Event(sender, message), args...);
   template <typename... Args>
   bool EmitWithSender(base::StringPiece name,
-                      content::RenderFrameHost* frame,
+                      ElectronBrowserContext* browser_context,
                       electron::mojom::ElectronApiIPC::InvokeCallback callback,
                       Args&&... args) {
     DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
@@ -49,7 +45,7 @@ class IpcHelper {
     v8::HandleScope handle_scope(isolate);
 
     gin::Handle<gin_helper::internal::Event> event =
-        MakeEventWithSender(isolate, frame, std::move(callback));
+        MakeEventWithSender(isolate, browser_context, std::move(callback));
     if (event.IsEmpty())
       return false;
     EmitWithoutEvent(name, event, std::forward<Args>(args)...);
@@ -58,31 +54,31 @@ class IpcHelper {
 
   gin::Handle<gin_helper::internal::Event> MakeEventWithSender(
       v8::Isolate* isolate,
-      content::RenderFrameHost* frame,
+      ElectronBrowserContext* browser_context,
       electron::mojom::ElectronApiIPC::InvokeCallback callback);
 
   // mojom::ElectronApiIPC
   void Message(bool internal,
                const std::string& channel,
                blink::CloneableMessage arguments,
-               content::RenderFrameHost* render_frame_host);
+               ElectronBrowserContext* browser_context);
   void Invoke(bool internal,
               const std::string& channel,
               blink::CloneableMessage arguments,
               electron::mojom::ElectronApiIPC::InvokeCallback callback,
-              content::RenderFrameHost* render_frame_host);
+              ElectronBrowserContext* browser_context);
   void ReceivePostMessage(const std::string& channel,
                           blink::TransferableMessage message,
-                          content::RenderFrameHost* render_frame_host);
+                          ElectronBrowserContext* browser_context);
   void MessageSync(
       bool internal,
       const std::string& channel,
       blink::CloneableMessage arguments,
       electron::mojom::ElectronApiIPC::MessageSyncCallback callback,
-      content::RenderFrameHost* render_frame_host);
+      ElectronBrowserContext* browser_context);
   void MessageHost(const std::string& channel,
                    blink::CloneableMessage arguments,
-                   content::RenderFrameHost* render_frame_host);
+                   ElectronBrowserContext* browser_context);
 
  private:
   raw_ptr<gin::Wrappable<T>> wrappable_;

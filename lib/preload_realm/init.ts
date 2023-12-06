@@ -1,7 +1,8 @@
 import * as events from 'events';
+import { IPC_MESSAGES } from '@electron/internal/common/ipc-messages';
 
-// import type * as ipcRendererInternalModule from '@electron/internal/renderer/ipc-renderer-internal';
-// import { IPC_MESSAGES } from '../common/ipc-messages';
+import type * as ipcRendererUtilsModule from '@electron/internal/renderer/ipc-renderer-internal-utils';
+import type * as ipcRendererInternalModule from '@electron/internal/renderer/ipc-renderer-internal';
 
 declare const binding: {
   get: (name: string) => any;
@@ -26,26 +27,20 @@ for (const prop of Object.keys(EventEmitter.prototype) as (keyof typeof process)
 }
 Object.setPrototypeOf(process, EventEmitter.prototype);
 
-// const { ipcRendererInternal } = require('@electron/internal/renderer/ipc-renderer-internal') as typeof ipcRendererInternalModule;
-// const ipcRendererUtils = require('@electron/internal/renderer/ipc-renderer-internal-utils') as typeof ipcRendererUtilsModule;
+const { ipcRendererInternal } = require('@electron/internal/renderer/ipc-renderer-internal') as typeof ipcRendererInternalModule;
+const ipcRendererUtils = require('@electron/internal/renderer/ipc-renderer-internal-utils') as typeof ipcRendererUtilsModule;
 
-// Test message
-// const {
-//   preloadScripts,
-//   process: processProps
-// } = ipcRendererUtils.invokeSync<{
-//   preloadScripts: {
-//     preloadPath: string;
-//     preloadSrc: string | null;
-//     preloadError: null | Error;
-//   }[];
-//   process: NodeJS.Process;
-// }>(IPC_MESSAGES.BROWSER_SANDBOX_LOAD);
-
-// console.log('***preloadRealm', {
-//   preloadScripts,
-//   processProps,
-// });
+const {
+  preloadScripts,
+  process: processProps
+} = ipcRendererUtils.invokeSync<{
+  preloadScripts: {
+    preloadPath: string;
+    preloadSrc: string | null;
+    preloadError: null | Error;
+  }[];
+  process: NodeJS.Process;
+}>(IPC_MESSAGES.BROWSER_SANDBOX_LOAD);
 
 const electron = require('electron');
 
@@ -62,6 +57,14 @@ const loadableModules = new Map<string, Function>([
   ['url', () => require('url')],
   ['node:url', () => require('url')]
 ]);
+
+const preloadProcess: NodeJS.Process = new EventEmitter() as any;
+
+Object.assign(preloadProcess, binding.process);
+Object.assign(preloadProcess, processProps);
+
+Object.assign(process, binding.process);
+Object.assign(process, processProps);
 
 // This is the `require` function that will be visible to the preload script
 function preloadRequire (module: string) {
@@ -81,3 +84,38 @@ function preloadRequire (module: string) {
   process,
   require: preloadRequire
 };
+
+// Wrap the script into a function executed in global scope. It won't have
+// access to the current scope, so we'll expose a few objects as arguments:
+//
+// - `require`: The `preloadRequire` function
+// - `process`: The `preloadProcess` object
+// - `Buffer`: Shim of `Buffer` implementation
+// - `global`: The window object, which is aliased to `global` by webpack.
+function runPreloadScript (preloadSrc: string) {
+  const preloadWrapperSrc = `(function(require, process, Buffer, global, setImmediate, clearImmediate, exports, module) {
+  ${preloadSrc}
+  })`;
+
+  // eval in window scope
+  const preloadFn = binding.createPreloadScript(preloadWrapperSrc);
+  const { setImmediate, clearImmediate } = require('timers');
+  const exports = {};
+
+  preloadFn(preloadRequire, preloadProcess, Buffer, global, setImmediate, clearImmediate, exports, { exports });
+}
+
+for (const { preloadPath, preloadSrc, preloadError } of preloadScripts) {
+  try {
+    if (preloadSrc) {
+      runPreloadScript(preloadSrc);
+    } else if (preloadError) {
+      throw preloadError;
+    }
+  } catch (error) {
+    console.error(`Unable to load preload script: ${preloadPath}`);
+    console.error(error);
+
+    ipcRendererInternal.send(IPC_MESSAGES.BROWSER_PRELOAD_ERROR, preloadPath, error);
+  }
+}

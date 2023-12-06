@@ -20,11 +20,11 @@ template <typename T>
 void IpcHelper<T>::Message(bool internal,
                            const std::string& channel,
                            blink::CloneableMessage arguments,
-                           content::RenderFrameHost* render_frame_host) {
+                           ElectronBrowserContext* browser_context) {
   // TRACE_EVENT1("electron", "IpcHelper::Message", "channel", channel);
   // webContents.emit('-ipc-message', new Event(), internal, channel,
   // arguments);
-  EmitWithSender("-ipc-message", render_frame_host,
+  EmitWithSender("-ipc-message", browser_context,
                  electron::mojom::ElectronApiIPC::InvokeCallback(), internal,
                  channel, std::move(arguments));
 }
@@ -35,11 +35,11 @@ void IpcHelper<T>::Invoke(
     const std::string& channel,
     blink::CloneableMessage arguments,
     electron::mojom::ElectronApiIPC::InvokeCallback callback,
-    content::RenderFrameHost* render_frame_host) {
+    ElectronBrowserContext* browser_context) {
   // TRACE_EVENT1("electron", "IpcHelper::Invoke", "channel", channel);
   // webContents.emit('-ipc-invoke', new Event(), internal, channel, arguments);
-  EmitWithSender("-ipc-invoke", render_frame_host, std::move(callback),
-                 internal, channel, std::move(arguments));
+  EmitWithSender("-ipc-invoke", browser_context, std::move(callback), internal,
+                 channel, std::move(arguments));
 }
 
 // This object wraps the InvokeCallback so that if it gets GC'd by V8, we can
@@ -101,7 +101,7 @@ gin::WrapperInfo ReplyChannel::kWrapperInfo = {gin::kEmbedderNativeGin};
 template <typename T>
 gin::Handle<gin_helper::internal::Event> IpcHelper<T>::MakeEventWithSender(
     v8::Isolate* isolate,
-    content::RenderFrameHost* frame,
+    ElectronBrowserContext* browser_context,
     electron::mojom::ElectronApiIPC::InvokeCallback callback) {
   v8::Local<v8::Object> wrapper;
   if (!wrappable_->GetWrapper(isolate).ToLocal(&wrapper)) {
@@ -118,25 +118,27 @@ gin::Handle<gin_helper::internal::Event> IpcHelper<T>::MakeEventWithSender(
   if (callback)
     dict.Set("_replyChannel",
              ReplyChannel::Create(isolate, std::move(callback)));
-  if (frame) {
-    dict.Set("frameId", frame->GetRoutingID());
-    dict.Set("processId", frame->GetProcess()->GetID());
+  // if (frame) {
+  //   dict.Set("frameId", frame->GetRoutingID());
+  //   dict.Set("processId", frame->GetProcess()->GetID());
+  // }
+  if (browser_context) {
+    dict.Set("session", api::Session::CreateFrom(isolate, browser_context));
   }
   return event;
 }
 
 template <typename T>
-void IpcHelper<T>::ReceivePostMessage(
-    const std::string& channel,
-    blink::TransferableMessage message,
-    content::RenderFrameHost* render_frame_host) {
+void IpcHelper<T>::ReceivePostMessage(const std::string& channel,
+                                      blink::TransferableMessage message,
+                                      ElectronBrowserContext* browser_context) {
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
   v8::HandleScope handle_scope(isolate);
   auto wrapped_ports =
       MessagePort::EntanglePorts(isolate, std::move(message.ports));
   v8::Local<v8::Value> message_value =
       electron::DeserializeV8Value(isolate, message);
-  EmitWithSender("-ipc-ports", render_frame_host,
+  EmitWithSender("-ipc-ports", browser_context,
                  electron::mojom::ElectronApiIPC::InvokeCallback(), false,
                  channel, message_value, std::move(wrapped_ports));
 }
@@ -147,21 +149,21 @@ void IpcHelper<T>::MessageSync(
     const std::string& channel,
     blink::CloneableMessage arguments,
     electron::mojom::ElectronApiIPC::MessageSyncCallback callback,
-    content::RenderFrameHost* render_frame_host) {
+    ElectronBrowserContext* browser_context) {
   // TRACE_EVENT1("electron", "IpcHelper::MessageSync", "channel", channel);
   // webContents.emit('-ipc-message-sync', new Event(sender, message), internal,
   // channel, arguments);
-  EmitWithSender("-ipc-message-sync", render_frame_host, std::move(callback),
+  EmitWithSender("-ipc-message-sync", browser_context, std::move(callback),
                  internal, channel, std::move(arguments));
 }
 
 template <typename T>
 void IpcHelper<T>::MessageHost(const std::string& channel,
                                blink::CloneableMessage arguments,
-                               content::RenderFrameHost* render_frame_host) {
+                               ElectronBrowserContext* browser_context) {
   // TRACE_EVENT1("electron", "IpcHelper::MessageHost", "channel", channel);
   // webContents.emit('ipc-message-host', new Event(), channel, args);
-  EmitWithSender("ipc-message-host", render_frame_host,
+  EmitWithSender("ipc-message-host", browser_context,
                  electron::mojom::ElectronApiIPC::InvokeCallback(), channel,
                  std::move(arguments));
 }
