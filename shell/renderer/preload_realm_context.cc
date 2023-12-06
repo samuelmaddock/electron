@@ -93,12 +93,14 @@ class ShadowRealmLifetimeController
       blink::ExecutionContext* initiator_execution_context,
       blink::ScriptState* initiator_script_state,
       blink::ShadowRealmGlobalScope* shadow_realm_global_scope,
-      blink::ScriptState* shadow_realm_script_state)
+      blink::ScriptState* shadow_realm_script_state,
+      blink::WebServiceWorkerContextProxy* proxy)
       : initiator_script_state_(initiator_script_state),
         is_initiator_worker_or_worklet_(
             initiator_execution_context->IsWorkerOrWorkletGlobalScope()),
         shadow_realm_global_scope_(shadow_realm_global_scope),
-        shadow_realm_script_state_(shadow_realm_script_state) {
+        shadow_realm_script_state_(shadow_realm_script_state),
+        proxy_(proxy) {
     SetContextLifecycleNotifier(initiator_execution_context);
     RegisterDebugger(initiator_execution_context);
 
@@ -138,14 +140,10 @@ class ShadowRealmLifetimeController
 
   v8::MaybeLocal<v8::Context> GetInitiatorContext() {
     return initiator_script_state_->ContextIsValid()
-      ? initiator_script_state_->GetContext()
-      : v8::MaybeLocal<v8::Context>();
+               ? initiator_script_state_->GetContext()
+               : v8::MaybeLocal<v8::Context>();
   }
 
-  void SetServiceWorkerProxy(blink::WebServiceWorkerContextProxy* proxy) {
-    DCHECK(!proxy_);
-    proxy_ = proxy;
-  }
   blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy() {
     return proxy_;
   }
@@ -239,11 +237,14 @@ class ShadowRealmLifetimeController
   raw_ptr<blink::WebServiceWorkerContextProxy> proxy_;
 };
 
-v8::Local<v8::Object> WrapShadowRealmLifetimeController(v8::Isolate* isolate, ShadowRealmLifetimeController* object) {
+v8::Local<v8::Object> WrapShadowRealmLifetimeController(
+    v8::Isolate* isolate,
+    ShadowRealmLifetimeController* object) {
   v8::Local<v8::ObjectTemplate> local = v8::ObjectTemplate::New(isolate);
   local->SetInternalFieldCount(1);
 
-  v8::Local<v8::Object> result = local->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+  v8::Local<v8::Object> result =
+      local->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
   result->SetInternalField(0, v8::External::New(isolate, object));
 
   return result;
@@ -264,13 +265,6 @@ v8::MaybeLocal<v8::Context> GetInitiatorContext(
   return v8::MaybeLocal<v8::Context>();
 }
 
-void SetServiceWorkerProxy(v8::Local<v8::Context> context,
-                           blink::WebServiceWorkerContextProxy* proxy) {
-  auto* controller = ShadowRealmLifetimeController::From(context);
-  if (controller)
-    controller->SetServiceWorkerProxy(proxy);
-}
-
 blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy(
     v8::Local<v8::Context> context) {
   auto* controller = ShadowRealmLifetimeController::From(context);
@@ -278,7 +272,8 @@ blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy(
 }
 
 v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
-    v8::Local<v8::Context> initiator_context) {
+    v8::Local<v8::Context> initiator_context,
+    blink::WebServiceWorkerContextProxy* proxy) {
   blink::ScriptState* initiator_script_state =
       blink::ScriptState::MaybeFrom(initiator_context);
   DCHECK(initiator_script_state);
@@ -335,10 +330,11 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
   // ShadowRealmGlobalScope and the ScriptState.
   // TODO: don't make this GC'd?
   auto* controller = blink::MakeGarbageCollected<ShadowRealmLifetimeController>(
-      initiator_execution_context, initiator_script_state, shadow_realm_global_scope,
-      script_state);
+      initiator_execution_context, initiator_script_state,
+      shadow_realm_global_scope, script_state, proxy);
 
-  v8::Local<v8::Object> wrapper = WrapShadowRealmLifetimeController(isolate, controller);
+  v8::Local<v8::Object> wrapper =
+      WrapShadowRealmLifetimeController(isolate, controller);
 
   gin_helper::Dictionary global(isolate, initiator_context->Global());
   global.SetHidden("preloadRealm", wrapper);
