@@ -18,6 +18,7 @@
 #include "gin/wrappable.h"
 #include "services/network/public/mojom/host_resolver.mojom-forward.h"
 #include "services/network/public/mojom/ssl_config.mojom-forward.h"
+#include "shell/browser/api/ipc_helper.h"
 #include "shell/browser/event_emitter_mixin.h"
 #include "shell/browser/net/resolve_proxy_helper.h"
 #include "shell/common/gin_helper/cleaned_up_at_exit.h"
@@ -94,6 +95,10 @@ class Session final : public gin::Wrappable<Session>,
 
   ElectronBrowserContext* browser_context() const {
     return &browser_context_.get();
+  }
+
+  IpcHelper<Session>* ipc_helper() const {
+    return ipc_helper_.get();
   }
 
   // gin::Wrappable
@@ -219,6 +224,8 @@ class Session final : public gin::Wrappable<Session>,
   base::UnguessableToken network_emulation_token_;
 
   const raw_ref<ElectronBrowserContext> browser_context_;
+
+  std::unique_ptr<IpcHelper<Session>> ipc_helper_;
 
   base::WeakPtrFactory<Session> weak_factory_{this};
 };

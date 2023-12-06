@@ -1,0 +1,93 @@
+#ifndef ELECTRON_SHELL_BROWSER_API_IPC_HELPER_H_
+#define ELECTRON_SHELL_BROWSER_API_IPC_HELPER_H_
+
+#include <string>
+#include <vector>
+
+#include "base/memory/raw_ptr.h"
+#include "base/values.h"
+#include "electron/shell/common/api/api.mojom.h"
+#include "gin/handle.h"
+#include "gin/wrappable.h"
+#include "shell/browser/javascript_environment.h"
+#include "shell/common/gin_helper/event.h"
+#include "shell/common/gin_helper/event_emitter.h"
+
+namespace content {
+class RenderFrameHost;
+}
+
+namespace electron {
+
+class ElectronBrowserContext;
+
+template <typename T>
+class IpcHelper {
+ public:
+  IpcHelper(gin::Wrappable<T>* wrappable) : wrappable_(wrappable) {}
+  ~IpcHelper() = default;
+
+  // this.emit(name, args...);
+  template <typename... Args>
+  void EmitWithoutEvent(base::StringPiece name, Args&&... args) {
+    v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
+    v8::HandleScope handle_scope(isolate);
+    v8::Local<v8::Object> wrapper;
+    if (!wrappable_->GetWrapper(isolate).ToLocal(&wrapper))
+      return;
+    gin_helper::EmitEvent(isolate, wrapper, name, std::forward<Args>(args)...);
+  }
+
+  // this.emit(name, new Event(sender, message), args...);
+  template <typename... Args>
+  bool EmitWithSender(base::StringPiece name,
+                      content::RenderFrameHost* frame,
+                      electron::mojom::ElectronApiIPC::InvokeCallback callback,
+                      Args&&... args) {
+    DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+    v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+    v8::HandleScope handle_scope(isolate);
+
+    gin::Handle<gin_helper::internal::Event> event =
+        MakeEventWithSender(isolate, frame, std::move(callback));
+    if (event.IsEmpty())
+      return false;
+    EmitWithoutEvent(name, event, std::forward<Args>(args)...);
+    return event->GetDefaultPrevented();
+  }
+
+  gin::Handle<gin_helper::internal::Event> MakeEventWithSender(
+      v8::Isolate* isolate,
+      content::RenderFrameHost* frame,
+      electron::mojom::ElectronApiIPC::InvokeCallback callback);
+
+  // mojom::ElectronApiIPC
+  void Message(bool internal,
+               const std::string& channel,
+               blink::CloneableMessage arguments,
+               content::RenderFrameHost* render_frame_host);
+  void Invoke(bool internal,
+              const std::string& channel,
+              blink::CloneableMessage arguments,
+              electron::mojom::ElectronApiIPC::InvokeCallback callback,
+              content::RenderFrameHost* render_frame_host);
+  void ReceivePostMessage(const std::string& channel,
+                          blink::TransferableMessage message,
+                          content::RenderFrameHost* render_frame_host);
+  void MessageSync(
+      bool internal,
+      const std::string& channel,
+      blink::CloneableMessage arguments,
+      electron::mojom::ElectronApiIPC::MessageSyncCallback callback,
+      content::RenderFrameHost* render_frame_host);
+  void MessageHost(const std::string& channel,
+                   blink::CloneableMessage arguments,
+                   content::RenderFrameHost* render_frame_host);
+
+ private:
+  raw_ptr<gin::Wrappable<T>> wrappable_;
+};
+
+}  // namespace electron
+
+#endif  // ELECTRON_SHELL_BROWSER_API_IPC_HELPER_H_

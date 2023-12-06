@@ -328,6 +328,8 @@ filenames = {
     "shell/browser/api/gpu_info_enumerator.h",
     "shell/browser/api/gpuinfo_manager.cc",
     "shell/browser/api/gpuinfo_manager.h",
+    "shell/browser/api/ipc_helper.cc",
+    "shell/browser/api/ipc_helper.h",
     "shell/browser/api/message_port.cc",
     "shell/browser/api/message_port.h",
     "shell/browser/api/process_metric.cc",

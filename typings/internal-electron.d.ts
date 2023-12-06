@@ -67,6 +67,10 @@ declare namespace Electron {
     }
   }
 
+  interface Session {
+    _init(): void;
+  }
+
   interface TouchBar {
     _removeFromWindow: (win: BaseWindow) => void;
   }

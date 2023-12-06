@@ -10,6 +10,8 @@
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_process_host.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
+#include "shell/browser/api/electron_api_session.h"
+#include "shell/browser/electron_browser_context.h"
 
 namespace electron {
 
@@ -65,56 +67,61 @@ void ElectronApiSWIPCHandlerImpl::RemoteDisconnected() {
 void ElectronApiSWIPCHandlerImpl::Message(bool internal,
                                           const std::string& channel,
                                           blink::CloneableMessage arguments) {
-  LOG(INFO) << "***ElectronApiSWIPCHandlerImpl::Message channel=" << channel
-            << "\n";
-  // api::WebContents* api_web_contents =
-  // api::WebContents::From(web_contents()); if (api_web_contents) {
-  //   api_web_contents->Message(internal, channel, std::move(arguments),
-  //                             GetRenderFrameHost());
-  // }
+  auto* session = GetSession();
+  if (session) {
+    session->ipc_helper()->Message(internal, channel, std::move(arguments),
+                                   nullptr);
+  }
 }
 void ElectronApiSWIPCHandlerImpl::Invoke(bool internal,
                                          const std::string& channel,
                                          blink::CloneableMessage arguments,
                                          InvokeCallback callback) {
-  LOG(INFO) << "***ElectronApiSWIPCHandlerImpl::Invoke channel=" << channel
-            << "\n";
-  // api::WebContents* api_web_contents =
-  // api::WebContents::From(web_contents()); if (api_web_contents) {
-  //   api_web_contents->Invoke(internal, channel, std::move(arguments),
-  //                            std::move(callback), GetRenderFrameHost());
-  // }
+  auto* session = GetSession();
+  if (session) {
+    session->ipc_helper()->Invoke(internal, channel, std::move(arguments),
+                                  std::move(callback), nullptr);
+  }
 }
 
 void ElectronApiSWIPCHandlerImpl::ReceivePostMessage(
     const std::string& channel,
     blink::TransferableMessage message) {
-  // api::WebContents* api_web_contents =
-  // api::WebContents::From(web_contents()); if (api_web_contents) {
-  //   api_web_contents->ReceivePostMessage(channel, std::move(message),
-  //                                        GetRenderFrameHost());
-  // }
+  auto* session = GetSession();
+  if (session) {
+    session->ipc_helper()->ReceivePostMessage(channel, std::move(message),
+                                              nullptr);
+  }
 }
 
 void ElectronApiSWIPCHandlerImpl::MessageSync(bool internal,
                                               const std::string& channel,
                                               blink::CloneableMessage arguments,
                                               MessageSyncCallback callback) {
-  // api::WebContents* api_web_contents =
-  // api::WebContents::From(web_contents()); if (api_web_contents) {
-  //   api_web_contents->MessageSync(internal, channel, std::move(arguments),
-  //                                 std::move(callback), GetRenderFrameHost());
-  // }
+  auto* session = GetSession();
+  if (session) {
+    session->ipc_helper()->MessageSync(internal, channel, std::move(arguments),
+                                       std::move(callback), nullptr);
+  }
 }
 
 void ElectronApiSWIPCHandlerImpl::MessageHost(
     const std::string& channel,
     blink::CloneableMessage arguments) {
-  // api::WebContents* api_web_contents =
-  // api::WebContents::From(web_contents()); if (api_web_contents) {
-  //   api_web_contents->MessageHost(channel, std::move(arguments),
-  //                                 GetRenderFrameHost());
-  // }
+  auto* session = GetSession();
+  if (session) {
+    session->ipc_helper()->MessageHost(channel, std::move(arguments), nullptr);
+  }
+}
+
+ElectronBrowserContext* ElectronApiSWIPCHandlerImpl::GetBrowserContext() {
+  auto* browser_context = static_cast<ElectronBrowserContext*>(
+      render_process_host_->GetBrowserContext());
+  return browser_context;
+}
+
+api::Session* ElectronApiSWIPCHandlerImpl::GetSession() {
+  return api::Session::FromBrowserContext(GetBrowserContext());
 }
 
 void ElectronApiSWIPCHandlerImpl::Destroy() {
@@ -142,8 +149,6 @@ void ElectronApiSWIPCHandlerImpl::BindReceiver(
     int render_process_id,
     mojo::PendingAssociatedReceiver<mojom::ElectronApiIPC> receiver) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
-  LOG(INFO) << "***ElectronApiSWIPCHandlerImpl::BindReceiver rpid="
-            << render_process_id << "\n";
   auto* render_process_host =
       content::RenderProcessHost::FromID(render_process_id);
   if (!render_process_host) {
