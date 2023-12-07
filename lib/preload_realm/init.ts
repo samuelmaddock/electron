@@ -79,12 +79,6 @@ function preloadRequire (module: string) {
   throw new Error(`module not found: ${module}`);
 }
 
-// TODO: remove this
-(globalThis as any).test = {
-  process,
-  require: preloadRequire
-};
-
 // Wrap the script into a function executed in global scope. It won't have
 // access to the current scope, so we'll expose a few objects as arguments:
 //
