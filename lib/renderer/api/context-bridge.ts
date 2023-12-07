@@ -20,6 +20,10 @@ const contextBridge: Electron.ContextBridge = {
   // checkContextIsolationEnabled();
   return binding.exposeAPIInInitiatorWorld(key, api);
 };
+(contextBridge as any).evaluateInInitiatorWorld = (source: string) => {
+  // checkContextIsolationEnabled();
+  return binding.evaluateInInitiatorWorld(source);
+};
 
 export default contextBridge;
 

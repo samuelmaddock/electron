@@ -386,7 +386,8 @@ v8::MaybeLocal<v8::Value> PassValueToOtherContext(
 
   // Custom logic to "clone" Element references
   // blink::WebElement elem =
-  //     blink::WebElement::FromV8Value(destination_context->GetIsolate(), value);
+  //     blink::WebElement::FromV8Value(destination_context->GetIsolate(),
+  //     value);
   // if (!elem.IsNull()) {
   //   v8::Context::Scope destination_context_scope(destination_context);
   //   return v8::MaybeLocal<v8::Value>(
@@ -840,6 +841,32 @@ bool IsCalledFromMainWorld(v8::Isolate* isolate) {
   return isolate->GetCurrentContext() == main_context;
 }
 
+v8::Local<v8::Value> EvaluateInInitiatorWorld(v8::Isolate* isolate,
+                                              const std::string& source,
+                                              gin_helper::Arguments* args) {
+  v8::Local<v8::Context> source_context = isolate->GetCurrentContext();
+  v8::MaybeLocal<v8::Context> maybe_initiator_context =
+      electron::GetInitiatorContext(source_context);
+  DCHECK(!maybe_initiator_context.IsEmpty());
+  v8::Local<v8::Context> initiator_context =
+      maybe_initiator_context.ToLocalChecked();
+
+  v8::Context::Scope initiator_scope(initiator_context);
+  v8::TryCatch try_catch(isolate);
+  auto maybe_script =
+      v8::Script::Compile(initiator_context, gin::StringToV8(isolate, source));
+  v8::Local<v8::Script> script;
+  if (!maybe_script.ToLocal(&script)) {
+    return v8::Local<v8::Value>();
+  }
+  if (try_catch.HasCaught()) {
+    isolate->ThrowException(v8::Exception::Error(try_catch.Message()->Get()));
+    return v8::Local<v8::Value>();
+  }
+  // TODO: clone result into context
+  return script->Run(initiator_context).ToLocalChecked();
+}
+
 }  // namespace api
 
 }  // namespace electron
@@ -852,6 +879,8 @@ void Initialize(v8::Local<v8::Object> exports,
                 void* priv) {
   v8::Isolate* isolate = context->GetIsolate();
   gin_helper::Dictionary dict(isolate, exports);
+  dict.SetMethod("evaluateInInitiatorWorld",
+                 &electron::api::EvaluateInInitiatorWorld);
   dict.SetMethod("exposeAPIInInitiatorWorld",
                  &electron::api::ExposeAPIInInitiatorWorld);
   dict.SetMethod("exposeAPIInWorld", &electron::api::ExposeAPIInWorld);
