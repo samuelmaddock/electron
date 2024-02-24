@@ -235,7 +235,7 @@ class ShadowRealmLifetimeController
 
     util::CompileAndCall(context, "electron/js2c/preload_realm_bundle",
                          &preload_realm_bundle_params,
-                         &preload_realm_bundle_args, nullptr);
+                         &preload_realm_bundle_args);
   }
 
   const blink::WeakMember<blink::ScriptState> initiator_script_state_;

@@ -1406,6 +1406,12 @@ void ElectronBrowserClient::OverrideURLLoaderFactoryParams(
 void ElectronBrowserClient::RegisterAssociatedInterfaceBindersForServiceWorker(
     const content::ServiceWorkerVersionBaseInfo& service_worker_version_info,
     blink::AssociatedInterfaceRegistry& associated_registry) {
+  CHECK(service_worker_version_info.process_id !=
+        content::ChildProcessHost::kInvalidUniqueID);
+  associated_registry.AddInterface<mojom::ElectronApiIPC>(
+      base::BindRepeating(&ElectronApiSWIPCHandlerImpl::BindReceiver,
+                          service_worker_version_info.process_id));
+
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
   associated_registry.AddInterface<extensions::mojom::RendererHost>(
       base::BindRepeating(&extensions::RendererStartupHelper::BindForRenderer,
@@ -1517,16 +1523,6 @@ void ElectronBrowserClient::
       },
       &render_frame_host));
 #endif
-}
-
-void ElectronBrowserClient::RegisterAssociatedInterfaceBindersForServiceWorker(
-    const content::ServiceWorkerVersionBaseInfo& service_worker_version_info,
-    blink::AssociatedInterfaceRegistry& associated_registry) {
-  CHECK(service_worker_version_info.process_id !=
-        content::ChildProcessHost::kInvalidUniqueID);
-  associated_registry.AddInterface<mojom::ElectronApiIPC>(
-      base::BindRepeating(&ElectronApiSWIPCHandlerImpl::BindReceiver,
-                          service_worker_version_info.process_id));
 }
 
 std::string ElectronBrowserClient::GetApplicationLocale() {
