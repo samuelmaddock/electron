@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: samuelmaddock <samuel.maddock@gmail.com>
+Date: Fri, 23 Feb 2024 20:01:13 -0500
+Subject: fix: ShadowRealm crash in JS console
+
+Preload realms depend on ShadowRealms which currently crash in this codepath
+when an error occurs in the JS console. Let's just prevent this issue for now.
+
+diff --git a/third_party/blink/renderer/bindings/core/v8/v8_initializer.cc b/third_party/blink/renderer/bindings/core/v8/v8_initializer.cc
+index 24555855b0ef2ef3d2430a4e64a5147e076843f9..7c4630639f814fd1b284b963af013a4a93ed0391 100644
+--- a/third_party/blink/renderer/bindings/core/v8/v8_initializer.cc
++++ b/third_party/blink/renderer/bindings/core/v8/v8_initializer.cc
+@@ -345,6 +345,13 @@ static void PromiseRejectHandlerInWorker(v8::PromiseRejectMessage data) {
+   if (!execution_context)
+     return;
+ 
++  // TODO(samuelmaddock): This is an Electron edit to prevent ShadowRealm from
++  // crashing when an error occurs in the console.
++  if (execution_context->IsShadowRealmGlobalScope()) {
++    LOG(INFO) << "Ignoring rejected promise in ShadowRealm.";
++    return;
++  }
++
+   auto* script_controller =
+       execution_context->IsWorkerGlobalScope()
+           ? To<WorkerGlobalScope>(execution_context)->ScriptController()
