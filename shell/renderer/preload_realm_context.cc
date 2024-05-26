@@ -111,6 +111,9 @@ class ShadowRealmLifetimeController
         shadow_realm_global_scope_(shadow_realm_global_scope),
         shadow_realm_script_state_(shadow_realm_script_state),
         proxy_(proxy) {
+    // Align lifetime of this controller to that of the initiator's context.
+    self_ = this;
+
     SetContextLifecycleNotifier(initiator_execution_context);
     RegisterDebugger(initiator_execution_context);
 
@@ -170,6 +173,7 @@ class ShadowRealmLifetimeController
     shadow_realm_script_state_.Clear();
     shadow_realm_global_scope_->NotifyContextDestroyed();
     shadow_realm_global_scope_.Clear();
+    self_.Clear();
   }
 
  private:
@@ -242,6 +246,7 @@ class ShadowRealmLifetimeController
   bool is_initiator_worker_or_worklet_;
   blink::Member<blink::ShadowRealmGlobalScope> shadow_realm_global_scope_;
   blink::Member<blink::ScriptState> shadow_realm_script_state_;
+  blink::Persistent<ShadowRealmLifetimeController> self_;
 
   std::unique_ptr<base::ProcessMetrics> metrics_;
   raw_ptr<blink::WebServiceWorkerContextProxy> proxy_;

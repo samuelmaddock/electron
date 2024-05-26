@@ -87,16 +87,16 @@ function preloadRequire (module: string) {
 // - `Buffer`: Shim of `Buffer` implementation
 // - `global`: The window object, which is aliased to `global` by webpack.
 function runPreloadScript (preloadSrc: string) {
-  const preloadWrapperSrc = `(function(require, process, Buffer, global, setImmediate, clearImmediate, exports, module) {
+  console.log('***running preload_Realm preload script');
+  const preloadWrapperSrc = `(function(require, process, Buffer, global, exports, module) {
   ${preloadSrc}
   })`;
 
   // eval in window scope
   const preloadFn = binding.createPreloadScript(preloadWrapperSrc);
-  const { setImmediate, clearImmediate } = require('timers');
   const exports = {};
 
-  preloadFn(preloadRequire, preloadProcess, Buffer, global, setImmediate, clearImmediate, exports, { exports });
+  preloadFn(preloadRequire, preloadProcess, Buffer, global, exports, { exports });
 }
 
 for (const { preloadPath, preloadSrc, preloadError } of preloadScripts) {
