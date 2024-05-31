@@ -296,7 +296,7 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
       blink::ExecutionContext::From(initiator_context);
   DCHECK(initiator_execution_context);
   v8::Isolate* isolate = initiator_context->GetIsolate();
-  scoped_refptr<blink::DOMWrapperWorld> world = blink::DOMWrapperWorld::Create(
+  blink::DOMWrapperWorld* world = blink::DOMWrapperWorld::Create(
       isolate, blink::DOMWrapperWorld::WorldType::kShadowRealm);
   CHECK(world);  // Not yet run out of the world id.
 
@@ -330,11 +330,11 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
 
   // Associate the Blink object with the v8::Objects.
   global_proxy = context->Global();
-  blink::V8DOMWrapper::SetNativeInfo(isolate, global_proxy, wrapper_type_info,
+  blink::V8DOMWrapper::SetNativeInfo(isolate, global_proxy,
                                      shadow_realm_global_scope);
   v8::Local<v8::Object> global_object =
       global_proxy->GetPrototype().As<v8::Object>();
-  blink::V8DOMWrapper::SetNativeInfo(isolate, global_object, wrapper_type_info,
+  blink::V8DOMWrapper::SetNativeInfo(isolate, global_object,
                                      shadow_realm_global_scope);
 
   // Install context-dependent properties.
