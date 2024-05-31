@@ -132,8 +132,8 @@ void ElectronApiSWIPCHandlerImpl::Destroy() {
   auto* service_worker_ipc_list = ServiceWorkerIPCList::Get(
       render_process_host_, /*create_if_not_exists=*/false);
   CHECK(service_worker_ipc_list);
-  // base::EraseIf will lead to a call to the destructor for this object.
-  base::EraseIf(service_worker_ipc_list->list, base::MatchesUniquePtr(this));
+  // std::erase_if will lead to a call to the destructor for this object.
+  std::erase_if(service_worker_ipc_list->list, base::MatchesUniquePtr(this));
 }
 
 void ElectronApiSWIPCHandlerImpl::RenderProcessExited(
