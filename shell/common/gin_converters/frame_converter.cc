@@ -94,8 +94,15 @@ bool Converter<gin_helper::AccessorValue<content::RenderFrameHost*>>::FromV8(
   const int routing_id = routing_id_wrapper.As<v8::Number>()->Value();
 
   auto* rfh = content::RenderFrameHost::FromID(process_id, routing_id);
-  if (!rfh)
+  if (!rfh) {
+    // Throw an error if the lazy evaluation can no longer find the
+    // frame which was set. Otherwise, accessing too late could result
+    // in race conditions where the RenderFrameHost has been swapped due
+    // to cross-origin navigation.
+    isolate->ThrowException(v8::Exception::TypeError(
+      gin::StringToV8(isolate, "Render frame was disposed before WebFrameMain could be accessed")));
     return false;
+  }
 
   out->Value = rfh;
   return true;

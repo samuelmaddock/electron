@@ -113,6 +113,28 @@ WebFrameMain* WebFrameMain::FromRenderFrameHost(
     WebFrameMain::FrameType frame_type) {
   if (!rfh)
     return nullptr;
+
+  // RenderFrameCreated is called for speculative frames which may not be
+  // used in certain cross-origin navigations. Invoking
+  // RenderFrameHost::GetLifecycleState currently crashes when called for
+  // speculative frames so we need to filter it out for now. Check
+  // https://crbug.com/1183639 for details on when this can be removed.
+  // auto* rfh_impl =
+  //     static_cast<content::RenderFrameHostImpl*>(rfh);
+
+  // // During cross-origin navigation, a RFH may be swapped out of its
+  // // FrameTreeNode with a new RFH. In these cases, it's marked for
+  // // deletion. As this pending deletion RFH won't be following future
+  // // swaps, we need to indicate that its been pinned.
+  // if (
+  //   frame_type == WebFrameMain::FrameType::Default &&
+  //   rfh_impl->lifecycle_state() !=
+  //     content::RenderFrameHostImpl::LifecycleStateImpl::kSpeculative &&
+  //   rfh->GetLifecycleState() == content::RenderFrameHost::LifecycleState::kPendingDeletion
+  // ) {
+  //   frame_type = WebFrameMain::FrameType::Pinned;
+  // }
+
   return FromFrameToken(rfh->GetGlobalFrameToken(), frame_type);
 }
 

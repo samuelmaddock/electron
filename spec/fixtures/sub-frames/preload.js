@@ -7,3 +7,11 @@ ipcRenderer.send('preload-ran', window.location.href, webFrame.routingId);
 ipcRenderer.on('preload-ping', () => {
   ipcRenderer.send('preload-pong', webFrame.routingId);
 });
+
+window.addEventListener('beforeunload', () => {
+  ipcRenderer.send('preload-beforeunload', window.location.href);
+});
+
+window.addEventListener('unload', () => {
+  ipcRenderer.send('preload-unload', window.location.href);
+});
