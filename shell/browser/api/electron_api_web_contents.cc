@@ -1978,11 +1978,13 @@ gin::Handle<gin_helper::internal::Event> WebContents::MakeEventWithSender(
   if (callback)
     dict.Set("_replyChannel",
              ReplyChannel::Create(isolate, std::move(callback)));
-  if (frame) {
+  DCHECK(frame);
+  // if (frame) {
     dict.Set("frameId", frame->GetRoutingID());
     dict.Set("processId", frame->GetProcess()->GetID());
-    dict.Set("senderFrame", PinnedRenderFrameHostRef::Create(frame));
-  }
+    // dict.Set("senderFrame", PinnedRenderFrameHostRef::Create(frame));
+    dict.SetGetter("senderFrame", frame);
+  // }
   return event;
 }
 

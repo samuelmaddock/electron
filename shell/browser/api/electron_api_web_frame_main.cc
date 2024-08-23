@@ -412,6 +412,26 @@ std::vector<content::RenderFrameHost*> WebFrameMain::FramesInSubtree() const {
   return frame_hosts;
 }
 
+
+std::string WebFrameMain::InternalState() const {
+  if (!CheckRenderFrame())
+    return "";
+  switch (render_frame_->GetLifecycleState()) {
+    case content::RenderFrameHost::LifecycleState::kPendingCommit:
+      return "kPendingCommit";
+    case content::RenderFrameHost::LifecycleState::kActive:
+      return "kActive";
+    case content::RenderFrameHost::LifecycleState::kPrerendering:
+      return "kPrerendering";
+    case content::RenderFrameHost::LifecycleState::kInBackForwardCache:
+      return "kInBackForwardCache";
+    case content::RenderFrameHost::LifecycleState::kPendingDeletion:
+      return "kPendingDeletion";
+    default:
+      return "unknown";
+  }
+}
+
 void WebFrameMain::DOMContentLoaded() {
   Emit("dom-ready");
 }
@@ -477,6 +497,7 @@ void WebFrameMain::FillObjectTemplate(v8::Isolate* isolate,
       .SetProperty("frames", &WebFrameMain::Frames)
       .SetProperty("framesInSubtree", &WebFrameMain::FramesInSubtree)
       .SetProperty("pinned", &WebFrameMain::Pinned)
+      .SetProperty("_state", &WebFrameMain::InternalState)
       .Build();
 }
 
