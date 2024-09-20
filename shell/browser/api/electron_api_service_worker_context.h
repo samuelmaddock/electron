@@ -40,6 +40,12 @@ class ServiceWorkerContext final
                               const GURL& scope,
                               const content::ConsoleMessage& message) override;
   void OnRegistrationCompleted(const GURL& scope) override;
+  void OnVersionStartingRunning(int64_t version_id) override;
+  void OnVersionStartedRunning(
+      int64_t version_id,
+      const content::ServiceWorkerRunningInfo& running_info) override;
+  void OnVersionStoppingRunning(int64_t version_id) override;
+  void OnVersionStoppedRunning(int64_t version_id) override;
   void OnDestruct(content::ServiceWorkerContext* context) override;
 
   // gin::Wrappable
@@ -58,6 +64,8 @@ class ServiceWorkerContext final
   ~ServiceWorkerContext() override;
 
  private:
+  void OnVersionUpdated(int64_t version_id, std::string& state);
+
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
 
   base::WeakPtrFactory<ServiceWorkerContext> weak_ptr_factory_{this};

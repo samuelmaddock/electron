@@ -56,6 +56,15 @@ Returns:
 
 Emitted when a service worker has been registered. Can occur after a call to [`navigator.serviceWorker.register('/sw.js')`](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register) successfully resolves or when a Chrome extension is loaded.
 
+#### Event: 'version-updated'
+
+Returns:
+
+* `event` Event
+  * `versionId` number - Service worker version ID.
+  * `state` string - Version state.
+    Possible values include `starting`, `running`, `stopping`, or `stopped`.
+
 ### Instance Methods
 
 The following methods are available on instances of `ServiceWorkers`:
