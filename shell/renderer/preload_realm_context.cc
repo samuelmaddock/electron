@@ -289,13 +289,13 @@ blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy(
 v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
     v8::Local<v8::Context> initiator_context,
     blink::WebServiceWorkerContextProxy* proxy) {
+  v8::Isolate* isolate = initiator_context->GetIsolate();
   blink::ScriptState* initiator_script_state =
-      blink::ScriptState::MaybeFrom(initiator_context);
+      blink::ScriptState::MaybeFrom(isolate, initiator_context);
   DCHECK(initiator_script_state);
   blink::ExecutionContext* initiator_execution_context =
       blink::ExecutionContext::From(initiator_context);
   DCHECK(initiator_execution_context);
-  v8::Isolate* isolate = initiator_context->GetIsolate();
   blink::DOMWrapperWorld* world = blink::DOMWrapperWorld::Create(
       isolate, blink::DOMWrapperWorld::WorldType::kShadowRealm);
   CHECK(world);  // Not yet run out of the world id.

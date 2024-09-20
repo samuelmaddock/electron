@@ -242,10 +242,11 @@ void ElectronSandboxedRendererClient::WillEvaluateServiceWorkerOnWorkerThread(
     v8::Local<v8::Context> v8_context,
     int64_t service_worker_version_id,
     const GURL& service_worker_scope,
-    const GURL& script_url) {
+    const GURL& script_url,
+    const blink::ServiceWorkerToken& service_worker_token) {
   RendererClientBase::WillEvaluateServiceWorkerOnWorkerThread(
       context_proxy, v8_context, service_worker_version_id,
-      service_worker_scope, script_url);
+      service_worker_scope, script_url, service_worker_token);
   OnCreatePreloadableV8Context(v8_context, context_proxy);
 }
 
