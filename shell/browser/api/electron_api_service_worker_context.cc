@@ -81,6 +81,16 @@ ServiceWorkerContext::~ServiceWorkerContext() {
   service_worker_context_->RemoveObserver(this);
 }
 
+void ServiceWorkerContext::OnVersionUpdated(int64_t version_id,
+                                            std::string& state) {
+  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+  v8::HandleScope scope(isolate);
+  EmitWithoutEvent("version-updated", gin::DataObjectBuilder(isolate)
+                                          .Set("versionId", version_id)
+                                          .Set("state", state)
+                                          .Build());
+}
+
 void ServiceWorkerContext::OnReportConsoleMessage(
     int64_t version_id,
     const GURL& scope,
@@ -103,6 +113,28 @@ void ServiceWorkerContext::OnRegistrationCompleted(const GURL& scope) {
   v8::HandleScope handle_scope(isolate);
   Emit("registration-completed",
        gin::DataObjectBuilder(isolate).Set("scope", scope).Build());
+}
+
+void ServiceWorkerContext::OnVersionStartingRunning(int64_t version_id) {
+  std::string state = "starting";
+  OnVersionUpdated(version_id, state);
+}
+
+void ServiceWorkerContext::OnVersionStartedRunning(
+    int64_t version_id,
+    const content::ServiceWorkerRunningInfo& running_info) {
+  std::string state = "started";
+  OnVersionUpdated(version_id, state);
+}
+
+void ServiceWorkerContext::OnVersionStoppingRunning(int64_t version_id) {
+  std::string state = "stopping";
+  OnVersionUpdated(version_id, state);
+}
+
+void ServiceWorkerContext::OnVersionStoppedRunning(int64_t version_id) {
+  std::string state = "stopped";
+  OnVersionUpdated(version_id, state);
 }
 
 void ServiceWorkerContext::OnDestruct(content::ServiceWorkerContext* context) {
