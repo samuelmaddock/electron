@@ -2,10 +2,12 @@
 #define ELECTRON_SHELL_BROWSER_API_IPC_HELPER_H_
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "base/memory/raw_ptr.h"
 #include "base/values.h"
+#include "content/public/browser/browser_thread.h"
 #include "electron/shell/common/api/api.mojom.h"
 #include "gin/handle.h"
 #include "gin/wrappable.h"
@@ -25,7 +27,7 @@ class IpcHelper {
 
   // this.emit(name, args...);
   template <typename... Args>
-  void EmitWithoutEvent(base::StringPiece name, Args&&... args) {
+  void EmitWithoutEvent(const std::string_view name, Args&&... args) {
     v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
     v8::HandleScope handle_scope(isolate);
     v8::Local<v8::Object> wrapper;
@@ -36,7 +38,7 @@ class IpcHelper {
 
   // this.emit(name, new Event(sender, message), args...);
   template <typename... Args>
-  bool EmitWithSender(base::StringPiece name,
+  bool EmitWithSender(const std::string_view name,
                       ElectronBrowserContext* browser_context,
                       electron::mojom::ElectronApiIPC::InvokeCallback callback,
                       Args&&... args) {
