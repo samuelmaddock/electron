@@ -67,6 +67,8 @@ class ServiceWorkerMain final
   ~ServiceWorkerMain() override;
 
  private:
+  void InvalidateState();
+  const content::ServiceWorkerRunningInfo* GetRunningInfo() const;
   void OnDestroyed();
 
   bool IsDestroyed() const;
@@ -78,6 +80,9 @@ class ServiceWorkerMain final
 
   // Whether the Service Worker version has been destroyed.
   bool version_destroyed_ = false;
+
+  // Store copy of running info when a live version isn't available
+  std::unique_ptr<content::ServiceWorkerRunningInfo> running_info_;
 
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
 
