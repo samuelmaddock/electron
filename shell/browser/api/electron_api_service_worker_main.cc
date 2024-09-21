@@ -19,7 +19,6 @@
 #include "shell/browser/browser.h"
 #include "shell/browser/javascript_environment.h"
 #include "shell/common/gin_converters/blink_converter.h"
-#include "shell/common/gin_converters/frame_converter.h"
 #include "shell/common/gin_converters/gurl_converter.h"
 #include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
@@ -50,8 +49,9 @@ ServiceWorkerMain* ServiceWorkerMain::FromVersionID(int64_t version_id) {
 
 gin::WrapperInfo ServiceWorkerMain::kWrapperInfo = {gin::kEmbedderNativeGin};
 
-ServiceWorkerMain::ServiceWorkerMain(int64_t version_id)
-    : version_id_(version_id) {
+ServiceWorkerMain::ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
+                                     int64_t version_id)
+    : version_id_(version_id), service_worker_context_(sw_context) {
   GetVersionIdMap().emplace(version_id_, this);
 }
 
@@ -84,13 +84,16 @@ gin::Handle<ServiceWorkerMain> ServiceWorkerMain::New(v8::Isolate* isolate) {
 }
 
 // static
-gin::Handle<ServiceWorkerMain> ServiceWorkerMain::From(v8::Isolate* isolate,
-                                                       int64_t version_id) {
+gin::Handle<ServiceWorkerMain> ServiceWorkerMain::From(
+    v8::Isolate* isolate,
+    content::ServiceWorkerContext* sw_context,
+    int64_t version_id) {
   auto* service_worker = FromVersionID(version_id);
   if (service_worker)
     return gin::CreateHandle(isolate, service_worker);
 
-  auto handle = gin::CreateHandle(isolate, new ServiceWorkerMain(version_id));
+  auto handle =
+      gin::CreateHandle(isolate, new ServiceWorkerMain(sw_context, version_id));
 
   // Prevent garbage collection of frame until it has been deleted internally.
   handle->Pin(isolate);
@@ -119,16 +122,6 @@ namespace {
 
 using electron::api::ServiceWorkerMain;
 
-v8::Local<v8::Value> FromVersionID(gin_helper::ErrorThrower thrower,
-                                   int64_t version_id) {
-  if (!electron::Browser::Get()->is_ready()) {
-    thrower.ThrowError("ServiceWorkerMain is available only after app ready");
-    return v8::Null(thrower.isolate());
-  }
-
-  return ServiceWorkerMain::From(thrower.isolate(), version_id).ToV8();
-}
-
 void Initialize(v8::Local<v8::Object> exports,
                 v8::Local<v8::Value> unused,
                 v8::Local<v8::Context> context,
@@ -136,7 +129,6 @@ void Initialize(v8::Local<v8::Object> exports,
   v8::Isolate* isolate = context->GetIsolate();
   gin_helper::Dictionary dict(isolate, exports);
   dict.Set("ServiceWorkerMain", ServiceWorkerMain::GetConstructor(context));
-  dict.SetMethod("fromVersionId", &FromVersionID);
 }
 
 }  // namespace
