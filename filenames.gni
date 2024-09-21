@@ -302,6 +302,8 @@ filenames = {
     "shell/browser/api/electron_api_screen.h",
     "shell/browser/api/electron_api_service_worker_context.cc",
     "shell/browser/api/electron_api_service_worker_context.h",
+    "shell/browser/api/electron_api_service_worker_main.cc",
+    "shell/browser/api/electron_api_service_worker_main.h",
     "shell/browser/api/electron_api_session.cc",
     "shell/browser/api/electron_api_session.h",
     "shell/browser/api/electron_api_system_preferences.cc",
