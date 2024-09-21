@@ -52,6 +52,10 @@ gin::WrapperInfo ServiceWorkerMain::kWrapperInfo = {gin::kEmbedderNativeGin};
 ServiceWorkerMain::ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
                                      int64_t version_id)
     : version_id_(version_id), service_worker_context_(sw_context) {
+  // Ensure SW is live
+  DCHECK(service_worker_context_->IsLiveStartingServiceWorker(version_id) ||
+         service_worker_context_->IsLiveRunningServiceWorker(version_id));
+
   GetVersionIdMap().emplace(version_id_, this);
 }
 
