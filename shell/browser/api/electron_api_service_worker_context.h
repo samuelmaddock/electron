@@ -34,6 +34,8 @@ class ServiceWorkerContext final
   v8::Local<v8::Value> GetAllRunningWorkerInfo(v8::Isolate* isolate);
   v8::Local<v8::Value> GetWorkerInfoFromID(gin_helper::ErrorThrower thrower,
                                            int64_t version_id);
+  v8::Local<v8::Value> FromVersionID(gin_helper::ErrorThrower thrower,
+                                     int64_t version_id);
 
   // content::ServiceWorkerContextObserver
   void OnReportConsoleMessage(int64_t version_id,

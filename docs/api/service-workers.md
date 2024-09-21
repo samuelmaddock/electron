@@ -80,3 +80,9 @@ Returns `Record<number, ServiceWorkerInfo>` - A [ServiceWorkerInfo](structures/s
 Returns [`ServiceWorkerInfo`](structures/service-worker-info.md) - Information about this service worker
 
 If the service worker does not exist or is not running this method will throw an exception.
+
+#### `serviceWorkers.fromVersionID(versionId)`
+
+* `versionId` number
+
+Returns [`ServiceWorkerMain`](service-worker-main.md) | undefined - Service worker

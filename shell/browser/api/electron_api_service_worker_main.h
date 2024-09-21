@@ -13,6 +13,7 @@
 #include "base/memory/weak_ptr.h"
 #include "base/process/process.h"
 #include "content/public/browser/global_routing_id.h"
+#include "content/public/browser/service_worker_context.h"
 #include "gin/wrappable.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
@@ -42,8 +43,10 @@ class ServiceWorkerMain final
   // Create a new ServiceWorkerMain and return the V8 wrapper of it.
   static gin::Handle<ServiceWorkerMain> New(v8::Isolate* isolate);
 
-  static gin::Handle<ServiceWorkerMain> From(v8::Isolate* isolate,
-                                             int64_t version_id);
+  static gin::Handle<ServiceWorkerMain> From(
+      v8::Isolate* isolate,
+      content::ServiceWorkerContext* sw_context,
+      int64_t version_id);
   static ServiceWorkerMain* FromVersionID(int64_t version_id);
 
   // gin_helper::Constructible
@@ -59,7 +62,8 @@ class ServiceWorkerMain final
   ServiceWorkerMain& operator=(const ServiceWorkerMain&) = delete;
 
  protected:
-  explicit ServiceWorkerMain(int64_t version_id);
+  explicit ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
+                             int64_t version_id);
   ~ServiceWorkerMain() override;
 
  private:
@@ -74,6 +78,8 @@ class ServiceWorkerMain final
 
   // Whether the Service Worker version has been destroyed.
   bool version_destroyed_ = false;
+
+  raw_ptr<content::ServiceWorkerContext> service_worker_context_;
 
   base::WeakPtrFactory<ServiceWorkerMain> weak_factory_{this};
 };

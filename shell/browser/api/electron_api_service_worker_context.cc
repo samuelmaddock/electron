@@ -13,6 +13,7 @@
 #include "gin/data_object_builder.h"
 #include "gin/handle.h"
 #include "gin/object_template_builder.h"
+#include "shell/browser/api/electron_api_service_worker_main.h"
 #include "shell/browser/electron_browser_context.h"
 #include "shell/browser/javascript_environment.h"
 #include "shell/common/gin_converters/gurl_converter.h"
@@ -205,6 +206,19 @@ v8::Local<v8::Value> ServiceWorkerContext::GetWorkerInfoFromID(
                                         std::move(iter->second));
 }
 
+v8::Local<v8::Value> ServiceWorkerContext::FromVersionID(
+    gin_helper::ErrorThrower thrower,
+    int64_t version_id) {
+  if (!service_worker_context_->IsLiveStartingServiceWorker(version_id) &&
+      !service_worker_context_->IsLiveRunningServiceWorker(version_id)) {
+    return v8::Undefined(thrower.isolate());
+  }
+
+  return ServiceWorkerMain::From(thrower.isolate(), service_worker_context_,
+                                 version_id)
+      .ToV8();
+}
+
 // static
 gin::Handle<ServiceWorkerContext> ServiceWorkerContext::Create(
     v8::Isolate* isolate,
@@ -220,8 +234,8 @@ gin::ObjectTemplateBuilder ServiceWorkerContext::GetObjectTemplateBuilder(
              ServiceWorkerContext>::GetObjectTemplateBuilder(isolate)
       .SetMethod("getAllRunning",
                  &ServiceWorkerContext::GetAllRunningWorkerInfo)
-      .SetMethod("getFromVersionID",
-                 &ServiceWorkerContext::GetWorkerInfoFromID);
+      .SetMethod("getFromVersionID", &ServiceWorkerContext::GetWorkerInfoFromID)
+      .SetMethod("fromVersionID", &ServiceWorkerContext::FromVersionID);
 }
 
 const char* ServiceWorkerContext::GetTypeName() {
