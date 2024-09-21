@@ -40,6 +40,7 @@ class ServiceWorkerContext final
                               const GURL& scope,
                               const content::ConsoleMessage& message) override;
   void OnRegistrationCompleted(const GURL& scope) override;
+  void OnVersionActivated(int64_t version_id, const GURL& scope) override;
   void OnVersionStartingRunning(int64_t version_id) override;
   void OnVersionStartedRunning(
       int64_t version_id,
