@@ -11,6 +11,10 @@
 
 #include "base/logging.h"
 #include "base/no_destructor.h"
+#include "content/browser/service_worker/service_worker_context_wrapper.h"  // nogncheck
+#include "content/browser/service_worker/service_worker_host.h"     // nogncheck
+#include "content/browser/service_worker/service_worker_version.h"  // nogncheck
+#include "content/public/browser/service_worker_running_info.h"
 #include "electron/shell/common/api/api.mojom.h"
 #include "gin/handle.h"
 #include "gin/object_template_builder.h"
@@ -57,14 +61,56 @@ ServiceWorkerMain::ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
          service_worker_context_->IsLiveRunningServiceWorker(version_id));
 
   GetVersionIdMap().emplace(version_id_, this);
+  InvalidateState();
 }
 
 ServiceWorkerMain::~ServiceWorkerMain() {
   OnDestroyed();
 }
 
+void ServiceWorkerMain::InvalidateState() {
+  if (running_info_ != nullptr) {
+    running_info_.reset();
+  }
+
+  // ServiceWorkerContext saves running state
+  if (service_worker_context_->IsLiveRunningServiceWorker(version_id_))
+    return;
+
+  // Need to create our own copy of running state for starting workers
+  auto* wrapper = static_cast<content::ServiceWorkerContextWrapper*>(
+      service_worker_context_);
+  content::ServiceWorkerVersion* version = wrapper->GetLiveVersion(version_id_);
+  if (version) {
+    content::ServiceWorkerRunningInfo::ServiceWorkerVersionStatus
+        version_status = content::ServiceWorkerRunningInfo::
+            ServiceWorkerVersionStatus::kUnknown;
+    content::ServiceWorkerVersionBaseInfo version_info = version->GetInfo();
+    running_info_ = std::make_unique<content::ServiceWorkerRunningInfo>(
+        version->script_url(), version_info.scope, version_info.storage_key,
+        version_info.process_id, version->worker_host()->token(),
+        version_status);
+  }
+}
+
+const content::ServiceWorkerRunningInfo* ServiceWorkerMain::GetRunningInfo()
+    const {
+  if (service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
+    auto& running_service_workers =
+        service_worker_context_->GetRunningServiceWorkerInfos();
+    auto it = running_service_workers.find(version_id_);
+    if (it != running_service_workers.end()) {
+      return &it->second;
+    }
+  } else if (running_info_) {
+    return running_info_.get();
+  }
+  return nullptr;
+}
+
 void ServiceWorkerMain::OnDestroyed() {
   version_destroyed_ = true;
+  running_info_.reset();
   GetVersionIdMap().erase(version_id_);
   Unpin();
 }
@@ -78,8 +124,10 @@ int64_t ServiceWorkerMain::VersionID() const {
 }
 
 GURL ServiceWorkerMain::ScopeURL() const {
-  // TODO:
-  return GURL::EmptyGURL();
+  auto* info = GetRunningInfo();
+  if (!info)
+    return GURL::EmptyGURL();
+  return info->scope;
 }
 
 // static
