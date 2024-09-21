@@ -19,6 +19,9 @@
 #include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 
+using ServiceWorkerStatus =
+    content::ServiceWorkerRunningInfo::ServiceWorkerVersionStatus;
+
 namespace electron::api {
 
 namespace {
@@ -55,10 +58,32 @@ constexpr std::string_view MessageSourceToString(
   }
 }
 
+constexpr std::string_view ServiceWorkerStatusToString(
+    ServiceWorkerStatus status) {
+  switch (status) {
+    case ServiceWorkerStatus::kNew:
+      return "new";
+    case ServiceWorkerStatus::kInstalling:
+      return "installing";
+    case ServiceWorkerStatus::kInstalled:
+      return "installed";
+    case ServiceWorkerStatus::kActivating:
+      return "activating";
+    case ServiceWorkerStatus::kActivated:
+      return "activated";
+    case ServiceWorkerStatus::kRedundant:
+      return "redundant";
+    case ServiceWorkerStatus::kUnknown:
+    default:
+      return "unknown";
+  }
+}
+
 v8::Local<v8::Value> ServiceWorkerRunningInfoToDict(
     v8::Isolate* isolate,
     const content::ServiceWorkerRunningInfo& info) {
   return gin::DataObjectBuilder(isolate)
+      .Set("status", ServiceWorkerStatusToString(info.version_status))
       .Set("scriptUrl", info.script_url.spec())
       .Set("scope", info.scope.spec())
       .Set("renderProcessId", info.render_process_id)
@@ -113,6 +138,16 @@ void ServiceWorkerContext::OnRegistrationCompleted(const GURL& scope) {
   v8::HandleScope handle_scope(isolate);
   Emit("registration-completed",
        gin::DataObjectBuilder(isolate).Set("scope", scope).Build());
+}
+
+void ServiceWorkerContext::OnVersionActivated(int64_t version_id,
+                                              const GURL& scope) {
+  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+  v8::HandleScope handle_scope(isolate);
+  EmitWithoutEvent("version-activated", gin::DataObjectBuilder(isolate)
+                                            .Set("versionId", version_id)
+                                            .Set("scope", scope)
+                                            .Build());
 }
 
 void ServiceWorkerContext::OnVersionStartingRunning(int64_t version_id) {
