@@ -13,6 +13,13 @@
 #include "electron/shell/common/api/api.mojom.h"
 #include "mojo/public/cpp/bindings/associated_receiver.h"
 
+// TODO: organize & forward refs
+#include "gin/data_object_builder.h"
+#include "gin/handle.h"
+#include "shell/browser/javascript_environment.h"
+#include "shell/common/gin_helper/dictionary.h"
+#include "shell/common/gin_helper/event.h"
+
 namespace content {
 class RenderProcessHost;
 }
@@ -29,10 +36,12 @@ class ElectronApiSWIPCHandlerImpl : public mojom::ElectronApiIPC,
  public:
   explicit ElectronApiSWIPCHandlerImpl(
       content::RenderProcessHost* render_process_host,
+      int64_t version_id,
       mojo::PendingAssociatedReceiver<mojom::ElectronApiIPC> receiver);
 
   static void BindReceiver(
       int render_process_id,
+      int64_t version_id,
       mojo::PendingAssociatedReceiver<mojom::ElectronApiIPC> receiver);
 
   // disable copy
@@ -66,6 +75,9 @@ class ElectronApiSWIPCHandlerImpl : public mojom::ElectronApiIPC,
   ElectronBrowserContext* GetBrowserContext();
   api::Session* GetSession();
 
+  gin::Handle<gin_helper::internal::Event>
+  CreateEvent(v8::Isolate* isolate, const std::string& channel, bool internal);
+
   // content::RenderProcessHostObserver
   void RenderProcessExited(
       content::RenderProcessHost* host,
@@ -79,6 +91,9 @@ class ElectronApiSWIPCHandlerImpl : public mojom::ElectronApiIPC,
   // This is safe because ElectronApiSWIPCHandlerImpl is tied to the life time
   // of RenderProcessHost.
   const raw_ptr<content::RenderProcessHost> render_process_host_;
+
+  // Service worker version ID.
+  int64_t version_id_;
 
   mojo::AssociatedReceiver<mojom::ElectronApiIPC> receiver_{this};
 

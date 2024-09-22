@@ -43,8 +43,9 @@ class ServiceWorkerIPCList : public base::SupportsUserData::Data {
 
 ElectronApiSWIPCHandlerImpl::ElectronApiSWIPCHandlerImpl(
     content::RenderProcessHost* render_process_host,
+    int64_t version_id,
     mojo::PendingAssociatedReceiver<mojom::ElectronApiIPC> receiver)
-    : render_process_host_(render_process_host) {
+    : render_process_host_(render_process_host), version_id_(version_id) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
   receiver_.Bind(std::move(receiver));
@@ -69,10 +70,14 @@ void ElectronApiSWIPCHandlerImpl::Message(bool internal,
                                           blink::CloneableMessage arguments) {
   auto* session = GetSession();
   if (session) {
-    session->ipc_helper()->Message(internal, channel, std::move(arguments),
-                                   GetBrowserContext());
+    v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
+    v8::HandleScope handle_scope(isolate);
+    gin::Handle<gin_helper::internal::Event> event =
+        CreateEvent(isolate, channel, internal);
+    session->ipc_helper()->Message(event, std::move(arguments));
   }
 }
+
 void ElectronApiSWIPCHandlerImpl::Invoke(bool internal,
                                          const std::string& channel,
                                          blink::CloneableMessage arguments,
@@ -126,6 +131,22 @@ api::Session* ElectronApiSWIPCHandlerImpl::GetSession() {
   return api::Session::FromBrowserContext(GetBrowserContext());
 }
 
+gin::Handle<gin_helper::internal::Event>
+ElectronApiSWIPCHandlerImpl::CreateEvent(v8::Isolate* isolate, bool internal) {
+  gin::Handle<gin_helper::internal::Event> event =
+      gin_helper::internal::Event::New(isolate);
+  v8::Local<v8::Object> event_object = event.ToV8().As<v8::Object>();
+
+  gin_helper::Dictionary dict(isolate, event_object);
+  dict.Set("type", "service-worker");
+  dict.SetHidden("internal", internal);
+  dict.Set("versionId", version_id_);
+  // TODO: should this be GetProcess()->GetID()?
+  dict.Set("processId", render_process_host_->GetID());
+
+  return event;
+}
+
 void ElectronApiSWIPCHandlerImpl::Destroy() {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
@@ -149,6 +170,7 @@ void ElectronApiSWIPCHandlerImpl::RenderProcessExited(
 // static
 void ElectronApiSWIPCHandlerImpl::BindReceiver(
     int render_process_id,
+    int64_t version_id,
     mojo::PendingAssociatedReceiver<mojom::ElectronApiIPC> receiver) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
   auto* render_process_host =
@@ -159,8 +181,8 @@ void ElectronApiSWIPCHandlerImpl::BindReceiver(
   auto* service_worker_ipc_list = ServiceWorkerIPCList::Get(
       render_process_host, /*create_if_not_exists=*/true);
   service_worker_ipc_list->list.push_back(
-      std::make_unique<ElectronApiSWIPCHandlerImpl>(render_process_host,
-                                                    std::move(receiver)));
+      std::make_unique<ElectronApiSWIPCHandlerImpl>(
+          render_process_host, version_id, std::move(receiver)));
 }
 
 }  // namespace electron

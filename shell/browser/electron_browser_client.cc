@@ -1410,7 +1410,8 @@ void ElectronBrowserClient::RegisterAssociatedInterfaceBindersForServiceWorker(
         content::ChildProcessHost::kInvalidUniqueID);
   associated_registry.AddInterface<mojom::ElectronApiIPC>(
       base::BindRepeating(&ElectronApiSWIPCHandlerImpl::BindReceiver,
-                          service_worker_version_info.process_id));
+                          service_worker_version_info.process_id,
+                          service_worker_version_info.version_id));
 
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
   associated_registry.AddInterface<extensions::mojom::RendererHost>(

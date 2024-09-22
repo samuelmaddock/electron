@@ -60,10 +60,8 @@ class IpcHelper {
       electron::mojom::ElectronApiIPC::InvokeCallback callback);
 
   // mojom::ElectronApiIPC
-  void Message(bool internal,
-               const std::string& channel,
-               blink::CloneableMessage arguments,
-               ElectronBrowserContext* browser_context);
+  void Message(gin::Handle<gin_helper::internal::Event>& event,
+               blink::CloneableMessage arguments);
   void Invoke(bool internal,
               const std::string& channel,
               blink::CloneableMessage arguments,
