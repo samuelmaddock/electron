@@ -132,13 +132,16 @@ api::Session* ElectronApiSWIPCHandlerImpl::GetSession() {
 }
 
 gin::Handle<gin_helper::internal::Event>
-ElectronApiSWIPCHandlerImpl::CreateEvent(v8::Isolate* isolate, bool internal) {
+ElectronApiSWIPCHandlerImpl::CreateEvent(v8::Isolate* isolate,
+                                         const std::string& channel,
+                                         bool internal) {
   gin::Handle<gin_helper::internal::Event> event =
       gin_helper::internal::Event::New(isolate);
   v8::Local<v8::Object> event_object = event.ToV8().As<v8::Object>();
 
   gin_helper::Dictionary dict(isolate, event_object);
   dict.Set("type", "service-worker");
+  dict.SetHidden("channel", channel);
   dict.SetHidden("internal", internal);
   dict.Set("versionId", version_id_);
   // TODO: should this be GetProcess()->GetID()?
