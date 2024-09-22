@@ -17,16 +17,10 @@
 namespace electron {
 
 template <typename T>
-void IpcHelper<T>::Message(bool internal,
-                           const std::string& channel,
-                           blink::CloneableMessage arguments,
-                           ElectronBrowserContext* browser_context) {
+void IpcHelper<T>::Message(gin::Handle<gin_helper::internal::Event>& event,
+                           blink::CloneableMessage args) {
   // TRACE_EVENT1("electron", "IpcHelper::Message", "channel", channel);
-  // webContents.emit('-ipc-message', new Event(), internal, channel,
-  // arguments);
-  EmitWithSender("-ipc-message", browser_context,
-                 electron::mojom::ElectronApiIPC::InvokeCallback(), internal,
-                 channel, std::move(arguments));
+  EmitWithoutEvent("-ipc-message", event, args);
 }
 
 template <typename T>

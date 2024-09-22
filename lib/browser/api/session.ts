@@ -4,6 +4,8 @@ import { ipcMainInternal } from '@electron/internal/browser/ipc-main-internal';
 const { fromPartition, fromPath, Session } = process._linkedBinding('electron_browser_session');
 const { isDisplayMediaSystemPickerAvailable } = process._linkedBinding('electron_browser_desktop_capturer');
 
+const v8Util = process._linkedBinding('electron_common_v8_util');
+
 // Fake video window that activates the native system picker
 // This is used to get around the need for a screen/window
 // id in Chrome's desktopCapturer.
@@ -27,23 +29,19 @@ const addReturnValueToEvent = (event: Electron.IpcMainEvent) => {
 };
 
 Session.prototype._init = function () {
-  // Dispatch IPC messages to the ipc module.
-  this.on('-ipc-message' as any, function (this: Electron.Session, event: Electron.IpcMainEvent, internal: boolean, channel: string, args: any[]) {
-    // addSenderToEvent(event, this);
+  this.on('-ipc-message' as any, function (this: Electron.Session, event: Electron.IpcMainEvent, args: any[]) {
+    const channel = v8Util.getHiddenValue<string>(event, 'channel');
+    const internal = v8Util.getHiddenValue<boolean>(event, 'internal');
+
     if (internal) {
       ipcMainInternal.emit(channel, event, ...args);
-    } else {
-      // addReplyToEvent(event);
-      this.emit('ipc-message', event, channel, ...args);
-      // const maybeWebFrame = getWebFrameForEvent(event);
-      // maybeWebFrame && maybeWebFrame.ipc.emit(channel, event, ...args);
-      // ipc.emit(channel, event, ...args);
-      ipcMain.emit(channel, event, ...args);
+    } else if ((event as any).type === 'service-worker') {
+      const worker = (this.serviceWorkers as any)._fromVersionIDIfExists((event as any).versionId);
+      worker?.ipc.emit(channel, event, ...args);
     }
   } as any);
 
   this.on('-ipc-invoke' as any, async function (this: Electron.WebContents, event: Electron.IpcMainInvokeEvent, internal: boolean, channel: string, args: any[]) {
-    // addSenderToEvent(event, this);
     const replyWithResult = (result: any) => event._replyChannel.sendReply({ result });
     const replyWithError = (error: Error) => {
       console.error(`Error occurred in handler for '${channel}':`, error);
@@ -64,16 +62,9 @@ Session.prototype._init = function () {
   } as any);
 
   this.on('-ipc-message-sync' as any, function (this: Electron.WebContents, event: Electron.IpcMainEvent, internal: boolean, channel: string, args: any[]) {
-    // addSenderToEvent(event, this);
     addReturnValueToEvent(event);
     if (internal) {
       ipcMainInternal.emit(channel, event, ...args);
-    } else {
-      // addReplyToEvent(event);
-      // this.emit('ipc-message-sync', event, channel, ...args);
-      // maybeWebFrame && maybeWebFrame.ipc.emit(channel, event, ...args);
-      // ipc.emit(channel, event, ...args);
-      ipcMain.emit(channel, event, ...args);
     }
   } as any);
 };

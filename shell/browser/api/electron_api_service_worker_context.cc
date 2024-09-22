@@ -220,6 +220,16 @@ v8::Local<v8::Value> ServiceWorkerContext::FromVersionID(
 }
 
 // static
+v8::Local<v8::Value> ServiceWorkerContext::FromVersionIDIfExists(
+    gin_helper::ErrorThrower thrower,
+    int64_t version_id) {
+  ServiceWorkerMain* worker = ServiceWorkerMain::FromVersionID(version_id);
+  if (!worker)
+    return v8::Null(thrower.isolate());
+  return gin::CreateHandle(thrower.isolate(), worker).ToV8();
+}
+
+// static
 gin::Handle<ServiceWorkerContext> ServiceWorkerContext::Create(
     v8::Isolate* isolate,
     ElectronBrowserContext* browser_context) {
@@ -235,7 +245,9 @@ gin::ObjectTemplateBuilder ServiceWorkerContext::GetObjectTemplateBuilder(
       .SetMethod("getAllRunning",
                  &ServiceWorkerContext::GetAllRunningWorkerInfo)
       .SetMethod("getFromVersionID", &ServiceWorkerContext::GetWorkerInfoFromID)
-      .SetMethod("fromVersionID", &ServiceWorkerContext::FromVersionID);
+      .SetMethod("fromVersionID", &ServiceWorkerContext::FromVersionID)
+      .SetMethod("_fromVersionIDIfExists",
+                 &ServiceWorkerContext::FromVersionIDIfExists);
 }
 
 const char* ServiceWorkerContext::GetTypeName() {
