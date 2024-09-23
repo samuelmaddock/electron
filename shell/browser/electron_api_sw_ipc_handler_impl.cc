@@ -74,7 +74,7 @@ void ElectronApiSWIPCHandlerImpl::Message(bool internal,
     v8::HandleScope handle_scope(isolate);
     gin::Handle<gin_helper::internal::Event> event =
         MakeIPCEvent(isolate, internal);
-    session->ipc_helper()->Message(event, channel, std::move(arguments));
+    session->Message(event, channel, std::move(arguments));
   }
 }
 
@@ -88,8 +88,7 @@ void ElectronApiSWIPCHandlerImpl::Invoke(bool internal,
     v8::HandleScope handle_scope(isolate);
     gin::Handle<gin_helper::internal::Event> event =
         MakeIPCEvent(isolate, internal);
-    session->ipc_helper()->Invoke(event, channel, std::move(arguments),
-                                  std::move(callback));
+    session->Invoke(event, channel, std::move(arguments), std::move(callback));
   }
 }
 
@@ -102,8 +101,7 @@ void ElectronApiSWIPCHandlerImpl::ReceivePostMessage(
     v8::HandleScope handle_scope(isolate);
     gin::Handle<gin_helper::internal::Event> event =
         MakeIPCEvent(isolate, false);
-    session->ipc_helper()->ReceivePostMessage(event, channel,
-                                              std::move(message));
+    session->ReceivePostMessage(event, channel, std::move(message));
   }
 }
 
@@ -117,8 +115,8 @@ void ElectronApiSWIPCHandlerImpl::MessageSync(bool internal,
     v8::HandleScope handle_scope(isolate);
     gin::Handle<gin_helper::internal::Event> event =
         MakeIPCEvent(isolate, internal);
-    session->ipc_helper()->MessageSync(event, channel, std::move(arguments),
-                                       std::move(callback));
+    session->MessageSync(event, channel, std::move(arguments),
+                         std::move(callback));
   }
 }
 
