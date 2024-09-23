@@ -65,7 +65,6 @@
 #include "shell/browser/api/electron_api_service_worker_context.h"
 #include "shell/browser/api/electron_api_web_frame_main.h"
 #include "shell/browser/api/electron_api_web_request.h"
-#include "shell/browser/api/ipc_helper.h"
 #include "shell/browser/browser.h"
 #include "shell/browser/electron_browser_context.h"
 #include "shell/browser/electron_browser_main_parts.h"
@@ -549,8 +548,7 @@ Session::Session(v8::Isolate* isolate, ElectronBrowserContext* browser_context)
     : isolate_(isolate),
       network_emulation_token_(base::UnguessableToken::Create()),
       browser_context_{
-          raw_ref<ElectronBrowserContext>::from_ptr(browser_context)},
-      ipc_helper_(new IpcHelper<Session>(this)) {
+          raw_ref<ElectronBrowserContext>::from_ptr(browser_context)} {
   // Observe DownloadManager to get download notifications.
   browser_context->GetDownloadManager()->AddObserver(this);
 
