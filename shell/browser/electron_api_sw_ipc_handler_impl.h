@@ -65,7 +65,9 @@ class ElectronApiSWIPCHandlerImpl : public mojom::ElectronApiIPC,
                    blink::CloneableMessage arguments,
                    MessageSyncCallback callback) override;
   void MessageHost(const std::string& channel,
-                   blink::CloneableMessage arguments) override;
+                   blink::CloneableMessage arguments) override {
+    // NOTE: Unused; service workers have no <webview>
+  }
 
   base::WeakPtr<ElectronApiSWIPCHandlerImpl> GetWeakPtr() {
     return weak_factory_.GetWeakPtr();
@@ -75,8 +77,8 @@ class ElectronApiSWIPCHandlerImpl : public mojom::ElectronApiIPC,
   ElectronBrowserContext* GetBrowserContext();
   api::Session* GetSession();
 
-  gin::Handle<gin_helper::internal::Event>
-  CreateEvent(v8::Isolate* isolate, const std::string& channel, bool internal);
+  gin::Handle<gin_helper::internal::Event> MakeIPCEvent(v8::Isolate* isolate,
+                                                        bool internal);
 
   // content::RenderProcessHostObserver
   void RenderProcessExited(
