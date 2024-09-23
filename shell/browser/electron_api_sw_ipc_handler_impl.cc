@@ -73,8 +73,8 @@ void ElectronApiSWIPCHandlerImpl::Message(bool internal,
     v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
     v8::HandleScope handle_scope(isolate);
     gin::Handle<gin_helper::internal::Event> event =
-        CreateEvent(isolate, channel, internal);
-    session->ipc_helper()->Message(event, std::move(arguments));
+        MakeIPCEvent(isolate, internal);
+    session->ipc_helper()->Message(event, channel, std::move(arguments));
   }
 }
 
@@ -84,8 +84,12 @@ void ElectronApiSWIPCHandlerImpl::Invoke(bool internal,
                                          InvokeCallback callback) {
   auto* session = GetSession();
   if (session) {
-    session->ipc_helper()->Invoke(internal, channel, std::move(arguments),
-                                  std::move(callback), GetBrowserContext());
+    v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
+    v8::HandleScope handle_scope(isolate);
+    gin::Handle<gin_helper::internal::Event> event =
+        MakeIPCEvent(isolate, internal);
+    session->ipc_helper()->Invoke(event, channel, std::move(arguments),
+                                  std::move(callback));
   }
 }
 
@@ -94,8 +98,12 @@ void ElectronApiSWIPCHandlerImpl::ReceivePostMessage(
     blink::TransferableMessage message) {
   auto* session = GetSession();
   if (session) {
-    session->ipc_helper()->ReceivePostMessage(channel, std::move(message),
-                                              GetBrowserContext());
+    v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
+    v8::HandleScope handle_scope(isolate);
+    gin::Handle<gin_helper::internal::Event> event =
+        MakeIPCEvent(isolate, false);
+    session->ipc_helper()->ReceivePostMessage(event, channel,
+                                              std::move(message));
   }
 }
 
@@ -105,19 +113,12 @@ void ElectronApiSWIPCHandlerImpl::MessageSync(bool internal,
                                               MessageSyncCallback callback) {
   auto* session = GetSession();
   if (session) {
-    session->ipc_helper()->MessageSync(internal, channel, std::move(arguments),
-                                       std::move(callback),
-                                       GetBrowserContext());
-  }
-}
-
-void ElectronApiSWIPCHandlerImpl::MessageHost(
-    const std::string& channel,
-    blink::CloneableMessage arguments) {
-  auto* session = GetSession();
-  if (session) {
-    session->ipc_helper()->MessageHost(channel, std::move(arguments),
-                                       GetBrowserContext());
+    v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
+    v8::HandleScope handle_scope(isolate);
+    gin::Handle<gin_helper::internal::Event> event =
+        MakeIPCEvent(isolate, internal);
+    session->ipc_helper()->MessageSync(event, channel, std::move(arguments),
+                                       std::move(callback));
   }
 }
 
@@ -132,20 +133,23 @@ api::Session* ElectronApiSWIPCHandlerImpl::GetSession() {
 }
 
 gin::Handle<gin_helper::internal::Event>
-ElectronApiSWIPCHandlerImpl::CreateEvent(v8::Isolate* isolate,
-                                         const std::string& channel,
-                                         bool internal) {
+ElectronApiSWIPCHandlerImpl::MakeIPCEvent(v8::Isolate* isolate, bool internal) {
   gin::Handle<gin_helper::internal::Event> event =
       gin_helper::internal::Event::New(isolate);
   v8::Local<v8::Object> event_object = event.ToV8().As<v8::Object>();
 
   gin_helper::Dictionary dict(isolate, event_object);
   dict.Set("type", "service-worker");
-  dict.SetHidden("channel", channel);
-  dict.SetHidden("internal", internal);
   dict.Set("versionId", version_id_);
   // TODO: should this be GetProcess()->GetID()?
   dict.Set("processId", render_process_host_->GetID());
+
+  // Set session to provide context for getting preloads
+  // TODO: maybe there's a better way to design this
+  dict.Set("session", GetSession());
+
+  if (internal)
+    dict.SetHidden("internal", internal);
 
   return event;
 }

@@ -1,5 +1,7 @@
 
 #include "shell/browser/api/ipc_helper.h"
+
+#include "base/trace_event/trace_event.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/render_process_host.h"
 #include "gin/arguments.h"
@@ -15,26 +17,6 @@
 #include "shell/common/v8_value_serializer.h"
 
 namespace electron {
-
-template <typename T>
-void IpcHelper<T>::Message(gin::Handle<gin_helper::internal::Event>& event,
-                           blink::CloneableMessage args) {
-  // TRACE_EVENT1("electron", "IpcHelper::Message", "channel", channel);
-  EmitWithoutEvent("-ipc-message", event, args);
-}
-
-template <typename T>
-void IpcHelper<T>::Invoke(
-    bool internal,
-    const std::string& channel,
-    blink::CloneableMessage arguments,
-    electron::mojom::ElectronApiIPC::InvokeCallback callback,
-    ElectronBrowserContext* browser_context) {
-  // TRACE_EVENT1("electron", "IpcHelper::Invoke", "channel", channel);
-  // webContents.emit('-ipc-invoke', new Event(), internal, channel, arguments);
-  EmitWithSender("-ipc-invoke", browser_context, std::move(callback), internal,
-                 channel, std::move(arguments));
-}
 
 // This object wraps the InvokeCallback so that if it gets GC'd by V8, we can
 // still call the callback and send an error. Not doing so causes a Mojo DCHECK,
@@ -93,73 +75,56 @@ class ReplyChannel : public gin::Wrappable<ReplyChannel> {
 gin::WrapperInfo ReplyChannel::kWrapperInfo = {gin::kEmbedderNativeGin};
 
 template <typename T>
-gin::Handle<gin_helper::internal::Event> IpcHelper<T>::MakeEventWithSender(
-    v8::Isolate* isolate,
-    ElectronBrowserContext* browser_context,
-    electron::mojom::ElectronApiIPC::InvokeCallback callback) {
-  v8::Local<v8::Object> wrapper;
-  if (!wrappable_->GetWrapper(isolate).ToLocal(&wrapper)) {
-    if (callback) {
-      // We must always invoke the callback if present.
-      ReplyChannel::Create(isolate, std::move(callback))
-          ->SendError("IPC Sender was destroyed");
-    }
-    return gin::Handle<gin_helper::internal::Event>();
-  }
-  gin::Handle<gin_helper::internal::Event> event =
-      gin_helper::internal::Event::New(isolate);
-  gin_helper::Dictionary dict(isolate, event.ToV8().As<v8::Object>());
-  if (callback)
-    dict.Set("_replyChannel",
-             ReplyChannel::Create(isolate, std::move(callback)));
-  // if (frame) {
-  //   dict.Set("frameId", frame->GetRoutingID());
-  //   dict.Set("processId", frame->GetProcess()->GetID());
-  // }
-  if (browser_context) {
-    dict.Set("session", api::Session::CreateFrom(isolate, browser_context));
-  }
-  return event;
+void IpcHelper<T>::Message(gin::Handle<gin_helper::internal::Event>& event,
+                           const std::string& channel,
+                           blink::CloneableMessage args) {
+  TRACE_EVENT1("electron", "IpcHelper::Message", "channel", channel);
+  EmitWithoutEvent("-ipc-message", event, channel, args);
 }
 
 template <typename T>
-void IpcHelper<T>::ReceivePostMessage(const std::string& channel,
-                                      blink::TransferableMessage message,
-                                      ElectronBrowserContext* browser_context) {
+void IpcHelper<T>::Invoke(
+    gin::Handle<gin_helper::internal::Event>& event,
+    const std::string& channel,
+    blink::CloneableMessage arguments,
+    electron::mojom::ElectronApiIPC::InvokeCallback callback) {
+  TRACE_EVENT1("electron", "IpcHelper::Invoke", "channel", channel);
+
+  v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
+  gin_helper::Dictionary dict(isolate, event.ToV8().As<v8::Object>());
+  dict.Set("_replyChannel", ReplyChannel::Create(isolate, std::move(callback)));
+
+  EmitWithoutEvent("-ipc-invoke", event, channel, std::move(arguments));
+}
+
+template <typename T>
+void IpcHelper<T>::ReceivePostMessage(
+    gin::Handle<gin_helper::internal::Event>& event,
+    const std::string& channel,
+    blink::TransferableMessage message) {
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
   v8::HandleScope handle_scope(isolate);
   auto wrapped_ports =
       MessagePort::EntanglePorts(isolate, std::move(message.ports));
   v8::Local<v8::Value> message_value =
       electron::DeserializeV8Value(isolate, message);
-  EmitWithSender("-ipc-ports", browser_context,
-                 electron::mojom::ElectronApiIPC::InvokeCallback(), false,
-                 channel, message_value, std::move(wrapped_ports));
+  EmitWithoutEvent("-ipc-ports", event, channel, message_value,
+                   std::move(wrapped_ports));
 }
 
 template <typename T>
 void IpcHelper<T>::MessageSync(
-    bool internal,
+    gin::Handle<gin_helper::internal::Event>& event,
     const std::string& channel,
     blink::CloneableMessage arguments,
-    electron::mojom::ElectronApiIPC::MessageSyncCallback callback,
-    ElectronBrowserContext* browser_context) {
-  // TRACE_EVENT1("electron", "IpcHelper::MessageSync", "channel", channel);
-  // webContents.emit('-ipc-message-sync', new Event(sender, message), internal,
-  // channel, arguments);
-  EmitWithSender("-ipc-message-sync", browser_context, std::move(callback),
-                 internal, channel, std::move(arguments));
-}
+    electron::mojom::ElectronApiIPC::MessageSyncCallback callback) {
+  TRACE_EVENT1("electron", "IpcHelper::MessageSync", "channel", channel);
 
-template <typename T>
-void IpcHelper<T>::MessageHost(const std::string& channel,
-                               blink::CloneableMessage arguments,
-                               ElectronBrowserContext* browser_context) {
-  // TRACE_EVENT1("electron", "IpcHelper::MessageHost", "channel", channel);
-  // webContents.emit('ipc-message-host', new Event(), channel, args);
-  EmitWithSender("ipc-message-host", browser_context,
-                 electron::mojom::ElectronApiIPC::InvokeCallback(), channel,
-                 std::move(arguments));
+  v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
+  gin_helper::Dictionary dict(isolate, event.ToV8().As<v8::Object>());
+  dict.Set("_replyChannel", ReplyChannel::Create(isolate, std::move(callback)));
+
+  EmitWithoutEvent("-ipc-message-sync", event, channel, std::move(arguments));
 }
 
 // Explicit template instantiation for known classes.

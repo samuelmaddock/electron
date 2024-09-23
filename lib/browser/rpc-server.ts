@@ -59,7 +59,7 @@ ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_SANDBOX_LOAD, async function (event
 
   if (event.sender) {
     preloadPaths = event.sender._getPreloadPaths();
-  } else if ((event as any).session) {
+  } else if ((event as any).type === 'service-worker') {
     preloadPaths = (event as any).session.getPreloads();
   } else {
     preloadPaths = [];
