@@ -174,7 +174,7 @@ v8::Local<v8::Value> Converter<blink::PermissionType>::ToV8(
     case blink::PermissionType::BACKGROUND_SYNC:
       return StringToV8(isolate, "background-sync");
     case blink::PermissionType::CLIPBOARD_READ_WRITE:
-      return StringToV8(isolate, "clipboard-read");
+      return StringToV8(isolate, "clipboard-read-write");
     case blink::PermissionType::CLIPBOARD_SANITIZED_WRITE:
       return StringToV8(isolate, "clipboard-sanitized-write");
     case blink::PermissionType::LOCAL_FONTS:

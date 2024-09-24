@@ -863,7 +863,7 @@ win.webContents.session.setCertificateVerifyProc((request, callback) => {
 * `permissionHandlers` Object | null
   * `isGranted` Function\<[PermissionCheckResult](structures/permission-check-result.md)>
     * `permission` string - Type of permission check.
-      * `clipboard-read` - Request access to read from the clipboard or write custom data.
+      * `clipboard-read-write` - Request access to read from the clipboard or write custom data.
       * `clipboard-sanitized-write` - Request access to write vetted data (such as plain text or sanitized images) to the clipboard.
       * `geolocation` - Access the user's geolocation data via the [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)
       * `fullscreen` - Control of the app's fullscreen state via the [Fullscreen API](https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API).
@@ -888,7 +888,7 @@ win.webContents.session.setCertificateVerifyProc((request, callback) => {
       * `isMainFrame` boolean (optional) - Whether the frame making the request is the main frame. This value is `undefined` in cases where the request is coming from a background worker and therefore is not related to a specific frame.
   * `onRequest` Function\<Promise\<[PermissionRequestResponse](structures/permission-request-response.md)\>\>
     * `permission` string - The type of requested permission.
-      * `clipboard-read` - Request access to read from the clipboard or write custom data.
+      * `clipboard-read-write` - Request access to read from the clipboard or write custom data.
       * `clipboard-sanitized-write` - Request access to write vetted data (such as plain text or sanitized images) to the clipboard.
       * `display-capture` - Request access to capture the screen via the [Screen Capture API](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Capture_API).
       * `fullscreen` - Request control of the app's fullscreen state via the [Fullscreen API](https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API).
