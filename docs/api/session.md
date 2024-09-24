@@ -1340,6 +1340,17 @@ this session just before normal `preload` scripts run.
 Returns `string[]` an array of paths to preload scripts that have been
 registered.
 
+#### `ses.setPreloadScripts(scripts)`
+
+* `scripts` [PreloadScript](structures/preload-script.md)[] - An array of absolute path to preload scripts
+
+Adds scripts that will be executed on ALL web contents that are associated with
+this session just before normal `preload` scripts run.
+
+#### `ses.getPreloadScripts()`
+
+Returns [`PreloadScript`](structures/preload-script.md)[] an array of paths to preload scripts that have been registered.
+
 #### `ses.setCodeCachePath(path)`
 
 * `path` String - Absolute path to store the v8 generated JS code cache from the renderer.
