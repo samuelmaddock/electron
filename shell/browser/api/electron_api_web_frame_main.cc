@@ -32,6 +32,7 @@
 #include "shell/common/gin_helper/promise.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/v8_value_serializer.h"
+#include "url/origin.h"
 
 namespace gin {
 
@@ -311,10 +312,10 @@ GURL WebFrameMain::URL() const {
   return render_frame_->GetLastCommittedURL();
 }
 
-std::string WebFrameMain::Origin() const {
+url::Origin WebFrameMain::Origin() const {
   if (!CheckRenderFrame())
-    return std::string();
-  return render_frame_->GetLastCommittedOrigin().Serialize();
+    return url::Origin();
+  return render_frame_->GetLastCommittedOrigin();
 }
 
 blink::mojom::PageVisibilityState WebFrameMain::VisibilityState() const {

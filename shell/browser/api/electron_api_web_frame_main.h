@@ -35,6 +35,10 @@ template <typename T>
 class Handle;
 }  // namespace gin
 
+namespace url {
+class Origin;
+}  // namespace url
+
 namespace electron::api {
 
 class WebContents;
@@ -118,7 +122,7 @@ class WebFrameMain final : public gin::Wrappable<WebFrameMain>,
   int ProcessID() const;
   int RoutingID() const;
   GURL URL() const;
-  std::string Origin() const;
+  url::Origin Origin() const;
   blink::mojom::PageVisibilityState VisibilityState() const;
 
   content::RenderFrameHost* Top() const;
