@@ -863,8 +863,8 @@ win.webContents.session.setCertificateVerifyProc((request, callback) => {
 * `permissionHandlers` Object | null
   * `isGranted` Function\<[PermissionCheckResult](structures/permission-check-result.md)>
     * `permission` string - Type of permission check.
-      * `clipboard-read` - Request access to read from the clipboard.
-      * `clipboard-sanitized-write` - Request access to write to the clipboard.
+      * `clipboard-read` - Request access to read from the clipboard or write custom data.
+      * `clipboard-sanitized-write` - Request access to write vetted data (such as plain text or sanitized images) to the clipboard.
       * `geolocation` - Access the user's geolocation data via the [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)
       * `fullscreen` - Control of the app's fullscreen state via the [Fullscreen API](https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API).
       * `hid` - Access the HID protocol to manipulate HID devices via the [WebHID API](https://developer.mozilla.org/en-US/docs/Web/API/WebHID_API).
@@ -888,8 +888,8 @@ win.webContents.session.setCertificateVerifyProc((request, callback) => {
       * `isMainFrame` boolean (optional) - Whether the frame making the request is the main frame. This value is `undefined` in cases where the request is coming from a background worker and therefore is not related to a specific frame.
   * `onRequest` Function\<Promise\<[PermissionRequestResponse](structures/permission-request-response.md)\>\>
     * `permission` string - The type of requested permission.
-      * `clipboard-read` - Request access to read from the clipboard.
-      * `clipboard-sanitized-write` - Request access to write to the clipboard.
+      * `clipboard-read` - Request access to read from the clipboard or write custom data.
+      * `clipboard-sanitized-write` - Request access to write vetted data (such as plain text or sanitized images) to the clipboard.
       * `display-capture` - Request access to capture the screen via the [Screen Capture API](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Capture_API).
       * `fullscreen` - Request control of the app's fullscreen state via the [Fullscreen API](https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API).
       * `geolocation` - Request access to the user's location via the [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)
@@ -960,8 +960,8 @@ session.fromPartition('some-partition').setPermissionCheckHandler((webContents, 
 * `handler` Function | null
   * `webContents` [WebContents](web-contents.md) - WebContents requesting the permission.  Please note that if the request comes from a subframe you should use `effectiveOrigin` to check the request origin.
   * `permission` string - The type of requested permission.
-    * `clipboard-read` - Request access to read from the clipboard.
-    * `clipboard-sanitized-write` - Request access to write to the clipboard.
+    * `clipboard-read` - Request access to read from the clipboard or write custom data.
+    * `clipboard-sanitized-write` - Request access to write vetted data (such as plain text or sanitized images) to the clipboard.
     * `display-capture` - Request access to capture the screen via the [Screen Capture API](https://developer.mozilla.org/en-US/docs/Web/API/Screen_Capture_API).
     * `fullscreen` - Request control of the app's fullscreen state via the [Fullscreen API](https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API).
     * `geolocation` - Request access to the user's location via the [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)
@@ -1007,8 +1007,8 @@ session.fromPartition('some-partition').setPermissionRequestHandler((webContents
 * `handler` Function\<boolean> | null
   * `webContents` ([WebContents](web-contents.md) | null) - WebContents checking the permission.  Please note that if the request comes from a subframe you should use `effectiveOrigin` to check the request origin.  All cross origin sub frames making permission checks will pass a `null` webContents to this handler, while certain other permission checks such as `notifications` checks will always pass `null`.  You should use `embeddingOrigin` and `effectiveOrigin` to determine what origin the owning frame and the requesting frame are on respectively.
   * `permission` string - Type of permission check.
-    * `clipboard-read` - Request access to read from the clipboard.
-    * `clipboard-sanitized-write` - Request access to write to the clipboard.
+    * `clipboard-read` - Request access to read from the clipboard or write custom data.
+    * `clipboard-sanitized-write` - Request access to write vetted data (such as plain text or sanitized images) to the clipboard.
     * `geolocation` - Access the user's geolocation data via the [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)
     * `fullscreen` - Control of the app's fullscreen state via the [Fullscreen API](https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API).
     * `hid` - Access the HID protocol to manipulate HID devices via the [WebHID API](https://developer.mozilla.org/en-US/docs/Web/API/WebHID_API).

@@ -111,6 +111,8 @@ auto_filenames = {
     "docs/api/structures/offscreen-shared-texture.md",
     "docs/api/structures/open-external-permission-request.md",
     "docs/api/structures/payment-discount.md",
+    "docs/api/structures/permission-check-result.md",
+    "docs/api/structures/permission-request-response.md",
     "docs/api/structures/permission-request.md",
     "docs/api/structures/point.md",
     "docs/api/structures/post-body.md",
