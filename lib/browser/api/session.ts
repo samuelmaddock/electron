@@ -77,6 +77,14 @@ Session.prototype.setPermissionHandlers = function (handlers) {
     return;
   }
 
+  if (typeof handlers !== 'object') {
+    throw new TypeError('Missing required handlers argument');
+  } else if (typeof handlers.isGranted !== 'function') {
+    throw new TypeError('Expected handlers object to contain a \'isGranted\' function property');
+  } else if (typeof handlers.onRequest !== 'function') {
+    throw new TypeError('Expected handlers object to contain a \'onRequest\' function property');
+  }
+
   this._setPermissionCheckHandler((_, permission: any, effectiveOrigin, details) => {
     return handlers.isGranted(permission, effectiveOrigin, details).status;
   });
