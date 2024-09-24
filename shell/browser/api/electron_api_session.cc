@@ -1062,18 +1062,6 @@ void Session::CreateInterruptedDownload(const gin_helper::Dictionary& options) {
       base::Time::FromSecondsSinceUnixEpoch(start_time)));
 }
 
-void Session::SetPreloads(const std::vector<base::FilePath>& preloads) {
-  auto* prefs = SessionPreferences::FromBrowserContext(browser_context());
-  DCHECK(prefs);
-  prefs->set_preloads(preloads);
-}
-
-std::vector<base::FilePath> Session::GetPreloads() const {
-  auto* prefs = SessionPreferences::FromBrowserContext(browser_context());
-  DCHECK(prefs);
-  return prefs->preloads();
-}
-
 void Session::SetPreloadScripts(
     const std::vector<PreloadScript>& preload_scripts) {
   auto* prefs = SessionPreferences::FromBrowserContext(browser_context());
@@ -1644,8 +1632,6 @@ void Session::FillObjectTemplate(v8::Isolate* isolate,
       .SetMethod("downloadURL", &Session::DownloadURL)
       .SetMethod("createInterruptedDownload",
                  &Session::CreateInterruptedDownload)
-      .SetMethod("setPreloads", &Session::SetPreloads)
-      .SetMethod("getPreloads", &Session::GetPreloads)
       .SetMethod("setPreloadScripts", &Session::SetPreloadScripts)
       .SetMethod("getPreloadScripts", &Session::GetPreloadScripts)
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)

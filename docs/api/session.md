@@ -1328,14 +1328,14 @@ the initial state will be `interrupted`. The download will start only when the
 
 Returns `Promise<void>` - resolves when the session’s HTTP authentication cache has been cleared.
 
-#### `ses.setPreloads(preloads)`
+#### `ses.setPreloads(preloads)` _Deprecated_
 
 * `preloads` string[] - An array of absolute path to preload scripts
 
 Adds scripts that will be executed on ALL web contents that are associated with
 this session just before normal `preload` scripts run.
 
-#### `ses.getPreloads()`
+#### `ses.getPreloads()` _Deprecated_
 
 Returns `string[]` an array of paths to preload scripts that have been
 registered.

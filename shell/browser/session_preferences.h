@@ -21,17 +21,10 @@ class SessionPreferences : public base::SupportsUserData::Data {
  public:
   static SessionPreferences* FromBrowserContext(
       content::BrowserContext* context);
-  static std::vector<base::FilePath> GetValidPreloads(
-      content::BrowserContext* context);
 
   static void CreateForBrowserContext(content::BrowserContext* context);
 
   ~SessionPreferences() override;
-
-  void set_preloads(const std::vector<base::FilePath>& preloads) {
-    preloads_ = preloads;
-  }
-  const std::vector<base::FilePath>& preloads() const { return preloads_; }
 
   void set_preload_scripts(const std::vector<PreloadScript>& preload_scripts) {
     preload_scripts_ = preload_scripts;
