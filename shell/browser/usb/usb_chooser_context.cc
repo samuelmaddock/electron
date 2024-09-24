@@ -21,6 +21,7 @@
 #include "shell/browser/electron_permission_manager.h"
 #include "shell/browser/web_contents_permission_helper.h"
 #include "shell/common/electron_constants.h"
+#include "shell/common/gin_converters/url_converters.h"
 #include "shell/common/gin_converters/usb_device_info_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "ui/base/l10n/l10n_util.h"
@@ -193,7 +194,7 @@ void UsbChooserContext::RevokeObjectPermissionInternal(
     v8::HandleScope scope(isolate);
     auto details = gin_helper::Dictionary::CreateEmpty(isolate);
     details.Set("device", object);
-    details.Set("origin", origin.Serialize());
+    details.Set("origin", origin);
     session->Emit("usb-device-revoked", details);
   }
 }

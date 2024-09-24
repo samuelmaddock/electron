@@ -20,6 +20,7 @@
 #include "shell/browser/web_contents_permission_helper.h"
 #include "shell/common/gin_converters/frame_converter.h"
 #include "shell/common/gin_converters/serial_port_info_converter.h"
+#include "shell/common/gin_converters/url_converters.h"
 
 namespace electron {
 
@@ -169,7 +170,7 @@ void SerialChooserContext::RevokePortPermissionWebInitiated(
     auto details = gin_helper::Dictionary::CreateEmpty(isolate);
     details.Set("port", it->second);
     details.SetGetter("frame", render_frame_host);
-    details.Set("origin", origin.Serialize());
+    details.Set("origin", origin);
     session->Emit("serial-port-revoked", details);
   }
 }

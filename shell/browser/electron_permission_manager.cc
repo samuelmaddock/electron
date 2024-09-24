@@ -25,6 +25,7 @@
 #include "shell/browser/web_contents_preferences.h"
 #include "shell/common/gin_converters/content_converter.h"
 #include "shell/common/gin_converters/frame_converter.h"
+#include "shell/common/gin_converters/url_converters.h"
 #include "shell/common/gin_converters/usb_protected_classes_converter.h"
 #include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
@@ -344,7 +345,7 @@ bool ElectronPermissionManager::CheckDevicePermission(
   v8::HandleScope scope(isolate);
   v8::Local<v8::Object> details = gin::DataObjectBuilder(isolate)
                                       .Set("deviceType", permission)
-                                      .Set("origin", origin.Serialize())
+                                      .Set("origin", origin)
                                       .Set("device", device.Clone())
                                       .Build();
   return device_permission_handler_.Run(details);

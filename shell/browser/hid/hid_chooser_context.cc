@@ -27,6 +27,7 @@
 #include "shell/common/gin_converters/content_converter.h"
 #include "shell/common/gin_converters/frame_converter.h"
 #include "shell/common/gin_converters/hid_device_info_converter.h"
+#include "shell/common/gin_converters/url_converters.h"
 #include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "third_party/blink/public/common/permissions/permission_utils.h"
@@ -126,7 +127,7 @@ void HidChooserContext::RevokeDevicePermission(
     v8::HandleScope scope(isolate);
     auto details = gin_helper::Dictionary::CreateEmpty(isolate);
     details.Set("device", device.Clone());
-    details.Set("origin", origin.Serialize());
+    details.Set("origin", origin);
     session->Emit("hid-device-revoked", details);
   }
 }
