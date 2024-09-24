@@ -1349,7 +1349,7 @@ this session just before normal `preload` scripts run.
 
 #### `ses.getPreloadScripts()`
 
-Returns [`PreloadScript`](structures/preload-script.md)[] an array of paths to preload scripts that have been registered.
+Returns [`PreloadScript[]`](structures/preload-script.md): An array of paths to preload scripts that have been registered.
 
 #### `ses.setCodeCachePath(path)`
 

@@ -43,32 +43,36 @@ ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_CLIPBOARD_SYNC, function (event, me
   return (clipboard as any)[method](...args);
 });
 
-const getPreloadScript = async function (preloadPath: string) {
+const getPreloadScriptsFromEvent = (event: ElectronInternal.IpcMainInternalEvent) => {
+  const session: Electron.Session = (event as any).type === 'service-worker' ? (event as any).session : event.sender.session;
+  let preloadScripts = session.getPreloadScripts();
+
+  if (event.sender) {
+    preloadScripts = preloadScripts.filter(script => script.type === 'frame');
+    const preload = event.sender._getPreloadScript();
+    if (preload) preloadScripts.push(preload);
+  } else if ((event as any).type === 'service-worker') {
+    preloadScripts = preloadScripts.filter(script => script.type === 'service-worker');
+  }
+
+  return preloadScripts;
+};
+
+const readPreloadScript = async function (script: Electron.PreloadScript) {
   let preloadSrc = null;
   let preloadError = null;
   try {
-    preloadSrc = await fs.promises.readFile(preloadPath, 'utf8');
+    preloadSrc = await fs.promises.readFile(script.filePath, 'utf8');
   } catch (error) {
     preloadError = error;
   }
-  return { preloadPath, preloadSrc, preloadError };
+  return { preloadPath: script.filePath, preloadSrc, preloadError };
 };
 
 ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_SANDBOX_LOAD, async function (event) {
-  let preloadPaths: string[];
-
-  if (event.sender) {
-    preloadPaths = event.sender._getPreloadPaths();
-  } else if ((event as any).type === 'service-worker') {
-    // TODO: need to load scripts from disk like `_getPreloadPaths`
-    preloadPaths = (event as any).session.getPreloadScripts()
-      .filter((script: Electron.PreloadScript) => script.type === 'service-worker');
-  } else {
-    preloadPaths = [];
-  }
-
+  const preloadScripts = getPreloadScriptsFromEvent(event);
   return {
-    preloadScripts: await Promise.all(preloadPaths.map(path => getPreloadScript(path))),
+    preloadScripts: await Promise.all(preloadScripts.map(readPreloadScript)),
     process: {
       arch: process.arch,
       platform: process.platform,
@@ -81,7 +85,8 @@ ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_SANDBOX_LOAD, async function (event
 });
 
 ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_NONSANDBOX_LOAD, function (event) {
-  return { preloadPaths: event.sender._getPreloadPaths() };
+  const preloadScripts = getPreloadScriptsFromEvent(event);
+  return { preloadPaths: preloadScripts.map(script => script.filePath) };
 });
 
 ipcMainInternal.on(IPC_MESSAGES.BROWSER_PRELOAD_ERROR, function (event, preloadPath: string, error: Error) {

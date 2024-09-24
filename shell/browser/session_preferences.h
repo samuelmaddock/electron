@@ -9,19 +9,13 @@
 
 #include "base/files/file_path.h"
 #include "base/supports_user_data.h"
+#include "shell/browser/preload_script.h"
 
 namespace content {
 class BrowserContext;
 }
 
 namespace electron {
-
-struct PreloadScript {
-  enum class ScriptType { kWebFrame, kServiceWorker };
-
-  base::FilePath file_path;
-  ScriptType script_type;
-};
 
 class SessionPreferences : public base::SupportsUserData::Data {
  public:
