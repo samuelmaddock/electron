@@ -383,6 +383,59 @@ base::Value::Dict createProxyConfig(ProxyPrefs::ProxyMode proxy_mode,
 
 namespace gin {
 
+using electron::PreloadScript;
+
+template <>
+struct Converter<PreloadScript::ScriptType> {
+  static v8::Local<v8::Value> ToV8(v8::Isolate* isolate,
+                                   const PreloadScript::ScriptType& in) {
+    using Val = PreloadScript::ScriptType;
+    static constexpr auto Lookup =
+        base::MakeFixedFlatMap<Val, std::string_view>({
+            {Val::kWebFrame, "frame"},
+            {Val::kServiceWorker, "service-worker"},
+        });
+    return StringToV8(isolate, Lookup.at(in));
+  }
+
+  static bool FromV8(v8::Isolate* isolate,
+                     v8::Local<v8::Value> val,
+                     PreloadScript::ScriptType* out) {
+    using Val = PreloadScript::ScriptType;
+    static constexpr auto Lookup =
+        base::MakeFixedFlatMap<std::string_view, Val>({
+            {"frame", Val::kWebFrame},
+            {"service-worker", Val::kServiceWorker},
+        });
+    return FromV8WithLookup(isolate, val, Lookup, out);
+  }
+};
+
+template <>
+struct Converter<PreloadScript> {
+  static v8::Local<v8::Value> ToV8(v8::Isolate* isolate,
+                                   const PreloadScript& script) {
+    gin::Dictionary dict(isolate, v8::Object::New(isolate));
+    dict.Set("filePath", script.file_path.AsUTF8Unsafe());
+    dict.Set("type", script.script_type);
+    return ConvertToV8(isolate, dict).As<v8::Object>();
+  }
+
+  static bool FromV8(v8::Isolate* isolate,
+                     v8::Local<v8::Value> val,
+                     PreloadScript* out) {
+    gin_helper::Dictionary options;
+    if (!ConvertFromV8(isolate, val, &options))
+      return false;
+    if (base::FilePath file_path; options.Get("filePath", &file_path))
+      out->file_path = file_path;
+    if (PreloadScript::ScriptType script_type;
+        options.Get("type", &script_type))
+      out->script_type = script_type;
+    return true;
+  }
+};
+
 template <>
 struct Converter<ClearStorageDataOptions> {
   static bool FromV8(v8::Isolate* isolate,
@@ -1074,6 +1127,19 @@ std::vector<base::FilePath> Session::GetPreloads() const {
   return prefs->preloads();
 }
 
+void Session::SetPreloadScripts(
+    const std::vector<PreloadScript>& preload_scripts) {
+  auto* prefs = SessionPreferences::FromBrowserContext(browser_context());
+  DCHECK(prefs);
+  prefs->set_preload_scripts(preload_scripts);
+}
+
+std::vector<PreloadScript> Session::GetPreloadScripts() const {
+  auto* prefs = SessionPreferences::FromBrowserContext(browser_context());
+  DCHECK(prefs);
+  return prefs->preload_scripts();
+}
+
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
 v8::Local<v8::Promise> Session::LoadExtension(
     const base::FilePath& extension_path,
@@ -1633,6 +1699,8 @@ void Session::FillObjectTemplate(v8::Isolate* isolate,
                  &Session::CreateInterruptedDownload)
       .SetMethod("setPreloads", &Session::SetPreloads)
       .SetMethod("getPreloads", &Session::GetPreloads)
+      .SetMethod("setPreloadScripts", &Session::SetPreloadScripts)
+      .SetMethod("getPreloadScripts", &Session::GetPreloadScripts)
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
       .SetMethod("loadExtension", &Session::LoadExtension)
       .SetMethod("removeExtension", &Session::RemoveExtension)

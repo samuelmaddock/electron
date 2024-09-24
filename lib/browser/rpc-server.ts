@@ -60,7 +60,9 @@ ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_SANDBOX_LOAD, async function (event
   if (event.sender) {
     preloadPaths = event.sender._getPreloadPaths();
   } else if ((event as any).type === 'service-worker') {
-    preloadPaths = (event as any).session.getPreloads();
+    // TODO: need to load scripts from disk like `_getPreloadPaths`
+    preloadPaths = (event as any).session.getPreloadScripts()
+      .filter((script: Electron.PreloadScript) => script.type === 'service-worker');
   } else {
     preloadPaths = [];
   }

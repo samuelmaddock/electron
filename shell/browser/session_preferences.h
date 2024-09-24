@@ -16,6 +16,13 @@ class BrowserContext;
 
 namespace electron {
 
+struct PreloadScript {
+  enum class ScriptType { kWebFrame, kServiceWorker };
+
+  base::FilePath file_path;
+  ScriptType script_type;
+};
+
 class SessionPreferences : public base::SupportsUserData::Data {
  public:
   static SessionPreferences* FromBrowserContext(
@@ -32,6 +39,13 @@ class SessionPreferences : public base::SupportsUserData::Data {
   }
   const std::vector<base::FilePath>& preloads() const { return preloads_; }
 
+  void set_preload_scripts(const std::vector<PreloadScript>& preload_scripts) {
+    preload_scripts_ = preload_scripts;
+  }
+  const std::vector<PreloadScript>& preload_scripts() const {
+    return preload_scripts_;
+  }
+
  private:
   SessionPreferences();
 
@@ -39,6 +53,7 @@ class SessionPreferences : public base::SupportsUserData::Data {
   static int kLocatorKey;
 
   std::vector<base::FilePath> preloads_;
+  std::vector<PreloadScript> preload_scripts_;
 };
 
 }  // namespace electron
