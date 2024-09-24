@@ -3,6 +3,7 @@ import { fetchWithSession } from '@electron/internal/browser/api/net-fetch';
 import { ipcMainInternal } from '@electron/internal/browser/ipc-main-internal';
 import type { ServiceWorkerMain } from 'electron/main';
 import { MessagePortMain } from '@electron/internal/browser/message-port-main';
+import * as deprecate from '@electron/internal/common/deprecate';
 const { fromPartition, fromPath, Session } = process._linkedBinding('electron_browser_session');
 const { isDisplayMediaSystemPickerAvailable } = process._linkedBinding('electron_browser_desktop_capturer');
 
@@ -102,6 +103,18 @@ Session.prototype.setDisplayMediaRequestHandler = function (handler, opts) {
 
     return handler(req, callback);
   }, opts);
+};
+
+const getPreloadsDeprecated = deprecate.warnOnce('session.getPreloads', 'session.getPreloadScripts');
+Session.prototype.getPreloads = function () {
+  getPreloadsDeprecated();
+  return this.getPreloadScripts().filter(script => script.type === 'frame').map(script => script.filePath);
+};
+
+const setPreloadsDeprecated = deprecate.warnOnce('session.setPreloads', 'session.setPreloadScripts');
+Session.prototype.setPreloads = function (preloads) {
+  setPreloadsDeprecated();
+  this.setPreloadScripts(preloads.map(filePath => ({ type: 'frame', filePath })));
 };
 
 export default {

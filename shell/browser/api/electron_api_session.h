@@ -141,8 +141,6 @@ class Session final : public gin::Wrappable<Session>,
                                      const std::string& uuid);
   void DownloadURL(const GURL& url, gin::Arguments* args);
   void CreateInterruptedDownload(const gin_helper::Dictionary& options);
-  void SetPreloads(const std::vector<base::FilePath>& preloads);
-  std::vector<base::FilePath> GetPreloads() const;
   void SetPreloadScripts(const std::vector<PreloadScript>& preload_scripts);
   std::vector<PreloadScript> GetPreloadScripts() const;
   v8::Local<v8::Value> Cookies(v8::Isolate* isolate);
