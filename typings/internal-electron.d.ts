@@ -80,7 +80,7 @@ declare namespace Electron {
     getOwnerBrowserWindow(): Electron.BrowserWindow | null;
     getLastWebPreferences(): Electron.WebPreferences | null;
     _getProcessMemoryInfo(): Electron.ProcessMemoryInfo;
-    _getPreloadPaths(): string[];
+    _getPreloadScript(): Electron.PreloadScript | null;
     equal(other: WebContents): boolean;
     browserWindowOptions: BrowserWindowConstructorOptions;
     _windowOpenHandler: ((details: Electron.HandlerDetails) => any) | null;
