@@ -1,3 +1,7 @@
+// Copyright (c) 2024 Samuel Maddock <sam@samuelmaddock.com>.
+// Use of this source code is governed by the MIT license that can be
+// found in the LICENSE file.
+
 #ifndef ELECTRON_SHELL_RENDERER_PRELOAD_REALM_CONTEXT_H_
 #define ELECTRON_SHELL_RENDERER_PRELOAD_REALM_CONTEXT_H_
 
