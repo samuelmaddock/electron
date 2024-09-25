@@ -1359,8 +1359,9 @@ describe('session module', () => {
   });
 
   describe('ses.setPermissionHandlers(handlers)', () => {
+    afterEach(closeAllWindows);
+
     describe('onRequest', () => {
-      afterEach(closeAllWindows);
       // These tests are done on an http server because navigator.userAgentData
       // requires a secure context.
       let server: http.Server;
@@ -1392,17 +1393,20 @@ describe('session module', () => {
           isGranted: () => ({ status: 'ask' })
         });
 
-        ses.protocol.interceptStringProtocol('https', (req, cb) => {
-          cb(`<html><script>(${remote})()</script></html>`);
-        });
-
-        const result = once(require('electron').ipcMain, 'message');
-
-        function remote () {
+        function remoteScript () {
           (navigator as any).requestMIDIAccess({ sysex: true }).then(() => {}, (err: any) => {
             require('electron').ipcRenderer.send('message', err.name);
           });
         }
+        ses.protocol.handle('https', () => {
+          const body = `<html><script>(${remoteScript})()</script></html>`;
+          return new Response(body, {
+            headers: { 'content-type': 'text/html' }
+          });
+        });
+        defer(() => ses.protocol.unhandle('https'));
+
+        const result = once(require('electron').ipcMain, 'message');
 
         w.loadURL('https://myfakesite');
 
@@ -1426,17 +1430,20 @@ describe('session module', () => {
           isGranted: () => ({ status: 'ask' })
         });
 
-        ses.protocol.interceptStringProtocol('https', (req, cb) => {
-          cb(`<html><script>(${remote})()</script></html>`);
-        });
-
-        const result = once(require('electron').ipcMain, 'message');
-
-        function remote () {
+        function remoteScript () {
           (navigator as any).requestMIDIAccess({ sysex: true }).then(() => {}, (err: any) => {
             require('electron').ipcRenderer.send('message', err.name);
           });
         }
+        ses.protocol.handle('https', () => {
+          const body = `<html><script>(${remoteScript})()</script></html>`;
+          return new Response(body, {
+            headers: { 'content-type': 'text/html' }
+          });
+        });
+        defer(() => ses.protocol.unhandle('https'));
+
+        const result = once(require('electron').ipcMain, 'message');
 
         w.loadURL('https://myfakesite');
 
@@ -1485,7 +1492,6 @@ describe('session module', () => {
     });
 
     describe('isGranted', () => {
-      afterEach(closeAllWindows);
       it('provides valid effectiveOrigin for main frame requests', async () => {
         const w = new BrowserWindow({
           show: false,
@@ -1497,9 +1503,12 @@ describe('session module', () => {
         const loadUrl = 'https://myfakesite/oh-hi';
         let effectiveOrigin: string = '';
 
-        ses.protocol.interceptStringProtocol('https', (req, cb) => {
-          cb('<html><script>console.log(\'test\');</script></html>');
+        ses.protocol.handle('https', () => {
+          return new Response('<html><script>console.log(\'test\');</script></html>', {
+            headers: { 'content-type': 'text/html' }
+          });
         });
+        defer(() => ses.protocol.unhandle('https'));
 
         ses.setPermissionHandlers(
           {
@@ -1536,9 +1545,12 @@ describe('session module', () => {
         let effectiveOrigin: string = '';
         let handlerDetails: Electron.PermissionCheckDetails;
 
-        ses.protocol.interceptStringProtocol('https', (req, cb) => {
-          cb('<html><script>console.log(\'test\');</script></html>');
+        ses.protocol.handle('https', () => {
+          return new Response('<html><script>console.log(\'test\');</script></html>', {
+            headers: { 'content-type': 'text/html' }
+          });
         });
+        defer(() => ses.protocol.unhandle('https'));
 
         ses.setPermissionHandlers(
           {
@@ -1584,9 +1596,12 @@ describe('session module', () => {
         const ses = w.webContents.session;
         const loadUrl = 'https://myfakesite/oh-hi';
 
-        ses.protocol.interceptStringProtocol('https', (req, cb) => {
-          cb('<html><script>console.log(\'test\');</script></html>');
+        ses.protocol.handle('https', () => {
+          return new Response('<html><script>console.log(\'test\');</script></html>', {
+            headers: { 'content-type': 'text/html' }
+          });
         });
+        defer(() => ses.protocol.unhandle('https'));
 
         ses.setPermissionHandlers(
           {
@@ -1616,9 +1631,12 @@ describe('session module', () => {
         const ses = w.webContents.session;
         const loadUrl = 'https://myfakesite/oh-hi';
 
-        ses.protocol.interceptStringProtocol('https', (req, cb) => {
-          cb('<html><script>console.log(\'test\');</script></html>');
+        ses.protocol.handle('https', () => {
+          return new Response('<html><script>console.log(\'test\');</script></html>', {
+            headers: { 'content-type': 'text/html' }
+          });
         });
+        defer(() => ses.protocol.unhandle('https'));
 
         ses.setPermissionHandlers(
           {
@@ -1648,9 +1666,12 @@ describe('session module', () => {
         const ses = w.webContents.session;
         const loadUrl = 'https://myfakesite/oh-hi';
 
-        ses.protocol.interceptStringProtocol('https', (req, cb) => {
-          cb('<html><script>console.log(\'test\');</script></html>');
+        ses.protocol.handle('https', () => {
+          return new Response('<html><script>console.log(\'test\');</script></html>', {
+            headers: { 'content-type': 'text/html' }
+          });
         });
+        defer(() => ses.protocol.unhandle('https'));
 
         ses.setPermissionHandlers(
           {
@@ -1672,6 +1693,7 @@ describe('session module', () => {
     });
   });
 
+  /** @deprecated see session.setPermissionHandlers */
   describe('ses.setPermissionRequestHandler(handler)', () => {
     afterEach(closeAllWindows);
     // These tests are done on an http server because navigator.userAgentData
@@ -1760,6 +1782,7 @@ describe('session module', () => {
     });
   });
 
+  /** @deprecated see session.setPermissionHandlers */
   describe('ses.setPermissionCheckHandler(handler)', () => {
     afterEach(closeAllWindows);
     it.skip('details provides requestingURL for mainFrame', async () => {
