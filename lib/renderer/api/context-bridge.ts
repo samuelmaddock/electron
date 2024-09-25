@@ -12,17 +12,12 @@ const contextBridge: Electron.ContextBridge = {
   exposeInIsolatedWorld: (worldId: number, key: string, api: any) => {
     checkContextIsolationEnabled();
     return binding.exposeAPIInWorld(worldId, key, api);
+  },
+  // TODO: add types
+  ['evaluateInMainWorld' as any]: (code: string, ...args: any[]) => {
+    // TODO: args are wrong?
+    return binding.evaluateInWorld(0, code, args);
   }
-};
-
-// TODO(samuelmaddock): proper types
-(contextBridge as any).exposeInInitiatorWorld = (key: string, api: any) => {
-  // checkContextIsolationEnabled();
-  return binding.exposeAPIInInitiatorWorld(key, api);
-};
-(contextBridge as any).evaluateInInitiatorWorld = (source: string) => {
-  // checkContextIsolationEnabled();
-  return binding.evaluateInInitiatorWorld(source);
 };
 
 export default contextBridge;
