@@ -67,7 +67,6 @@ class SerialChooserController final
   std::vector<blink::mojom::SerialPortFilterPtr> filters_;
   std::vector<::device::BluetoothUUID> allowed_bluetooth_service_class_ids_;
   content::SerialChooser::Callback callback_;
-  url::Origin origin_;
 
   base::WeakPtr<SerialChooserContext> chooser_context_;
 

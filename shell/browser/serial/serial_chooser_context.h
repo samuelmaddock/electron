@@ -64,14 +64,11 @@ class SerialChooserContext : public KeyedService,
   SerialChooserContext& operator=(const SerialChooserContext&) = delete;
 
   // Serial-specific interface for granting and checking permissions.
-  void GrantPortPermission(const url::Origin& origin,
-                           const device::mojom::SerialPortInfo& port,
+  void GrantPortPermission(const device::mojom::SerialPortInfo& port,
                            content::RenderFrameHost* render_frame_host);
-  bool HasPortPermission(const url::Origin& origin,
-                         const device::mojom::SerialPortInfo& port,
+  bool HasPortPermission(const device::mojom::SerialPortInfo& port,
                          content::RenderFrameHost* render_frame_host);
   void RevokePortPermissionWebInitiated(
-      const url::Origin& origin,
       const base::UnguessableToken& token,
       content::RenderFrameHost* render_frame_host);
   static bool CanStorePersistentEntry(

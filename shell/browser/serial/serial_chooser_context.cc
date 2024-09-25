@@ -99,9 +99,10 @@ SerialChooserContext::~SerialChooserContext() {
 }
 
 void SerialChooserContext::GrantPortPermission(
-    const url::Origin& origin,
     const device::mojom::SerialPortInfo& port,
     content::RenderFrameHost* render_frame_host) {
+  url::Origin origin = render_frame_host->GetLastCommittedOrigin();
+
   port_info_.insert({port.token, port.Clone()});
 
   if (CanStorePersistentEntry(port)) {
@@ -118,9 +119,10 @@ void SerialChooserContext::GrantPortPermission(
 }
 
 bool SerialChooserContext::HasPortPermission(
-    const url::Origin& origin,
     const device::mojom::SerialPortInfo& port,
     content::RenderFrameHost* render_frame_host) {
+  url::Origin origin = render_frame_host->GetLastCommittedOrigin();
+
   auto it = ephemeral_ports_.find(origin);
   if (it != ephemeral_ports_.end()) {
     const std::set<base::UnguessableToken>& ports = it->second;
@@ -140,9 +142,10 @@ bool SerialChooserContext::HasPortPermission(
 }
 
 void SerialChooserContext::RevokePortPermissionWebInitiated(
-    const url::Origin& origin,
     const base::UnguessableToken& token,
     content::RenderFrameHost* render_frame_host) {
+  url::Origin origin = render_frame_host->GetLastCommittedOrigin();
+
   auto it = port_info_.find(token);
   if (it != port_info_.end()) {
     auto* permission_manager = static_cast<ElectronPermissionManager*>(
