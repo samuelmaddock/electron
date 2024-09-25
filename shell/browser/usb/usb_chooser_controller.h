@@ -73,7 +73,7 @@ class UsbChooserController final : private UsbChooserContext::DeviceObserver,
 
   base::WeakPtr<ElectronUsbDelegate> usb_delegate_;
 
-  content::GlobalRenderFrameHostId render_frame_host_id_;
+  content::GlobalRenderFrameHostToken render_frame_host_token_;
 
   base::WeakPtrFactory<UsbChooserController> weak_factory_{this};
 };

@@ -41,9 +41,9 @@ UsbChooserController::UsbChooserController(
     : WebContentsObserver(web_contents),
       options_(std::move(options)),
       callback_(std::move(callback)),
-      origin_(render_frame_host->GetMainFrame()->GetLastCommittedOrigin()),
+      origin_(render_frame_host->GetLastCommittedOrigin()),
       usb_delegate_(usb_delegate),
-      render_frame_host_id_(render_frame_host->GetGlobalId()) {
+      render_frame_host_token_(render_frame_host->GetGlobalFrameToken()) {
   chooser_context_ = UsbChooserContextFactory::GetForBrowserContext(
                          web_contents->GetBrowserContext())
                          ->AsWeakPtr();
@@ -114,7 +114,8 @@ void UsbChooserController::GotUsbDeviceList(
   bool prevent_default = false;
   api::Session* session = GetSession();
   if (session) {
-    auto* rfh = content::RenderFrameHost::FromID(render_frame_host_id_);
+    auto* rfh =
+        content::RenderFrameHost::FromFrameToken(render_frame_host_token_);
     v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
     v8::HandleScope handle_scope{isolate};
 
