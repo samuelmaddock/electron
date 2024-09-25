@@ -1603,13 +1603,10 @@ void Session::FillObjectTemplate(v8::Isolate* isolate,
       .SetMethod("enableNetworkEmulation", &Session::EnableNetworkEmulation)
       .SetMethod("disableNetworkEmulation", &Session::DisableNetworkEmulation)
       .SetMethod("setCertificateVerifyProc", &Session::SetCertVerifyProc)
-      .SetMethod("_setPermissionRequestHandler",
-                 &Session::SetPermissionRequestHandler)
-      // TODO: duplicate method names?
       .SetMethod("_setPermissionCheckHandler",
                  &Session::SetPermissionIsGrantedHandler)
-      .SetMethod("_setPermissionCheckHandler",
-                 &Session::SetDisplayMediaRequestHandler)
+      .SetMethod("_setPermissionRequestHandler",
+                 &Session::SetPermissionRequestHandler)
       .SetMethod("setDevicePermissionHandler",
                  &Session::SetDevicePermissionHandler)
       .SetMethod("setUSBProtectedClassesHandler",
