@@ -77,10 +77,10 @@
 #include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/content_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
-#include "shell/common/gin_converters/url_converters.h"
 #include "shell/common/gin_converters/media_converter.h"
 #include "shell/common/gin_converters/net_converter.h"
 #include "shell/common/gin_converters/optional_converter.h"
+#include "shell/common/gin_converters/url_converters.h"
 #include "shell/common/gin_converters/usb_protected_classes_converter.h"
 #include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
@@ -850,7 +850,8 @@ void Session::SetPermissionRequestHandler(v8::Local<v8::Value> val,
         ElectronPermissionManager::OnRequestHandler());
     return;
   }
-  auto handler = std::make_unique<ElectronPermissionManager::OnRequestHandler>();
+  auto handler =
+      std::make_unique<ElectronPermissionManager::OnRequestHandler>();
   if (!gin::ConvertFromV8(args->isolate(), val, handler.get())) {
     args->ThrowTypeError("Must pass null or function");
     return;
@@ -860,8 +861,7 @@ void Session::SetPermissionRequestHandler(v8::Local<v8::Value> val,
          content::WebContents* web_contents,
          blink::PermissionType permission_type,
          ElectronPermissionManager::StatusCallback callback,
-         const base::Value& details,
-         const url::Origin& effective_origin) {
+         const base::Value& details, const url::Origin& effective_origin) {
         handler->Run(web_contents, permission_type, std::move(callback),
                      details, effective_origin);
       },
@@ -869,7 +869,7 @@ void Session::SetPermissionRequestHandler(v8::Local<v8::Value> val,
 }
 
 void Session::SetPermissionIsGrantedHandler(v8::Local<v8::Value> val,
-                                        gin::Arguments* args) {
+                                            gin::Arguments* args) {
   ElectronPermissionManager::IsGrantedHandler handler;
   if (!(val->IsNull() || gin::ConvertFromV8(args->isolate(), val, &handler))) {
     args->ThrowTypeError("Must pass null or function");
@@ -1605,6 +1605,7 @@ void Session::FillObjectTemplate(v8::Isolate* isolate,
       .SetMethod("setCertificateVerifyProc", &Session::SetCertVerifyProc)
       .SetMethod("_setPermissionRequestHandler",
                  &Session::SetPermissionRequestHandler)
+      // TODO: duplicate method names?
       .SetMethod("_setPermissionCheckHandler",
                  &Session::SetPermissionIsGrantedHandler)
       .SetMethod("_setPermissionCheckHandler",

@@ -184,9 +184,9 @@ v8::Local<v8::Value> Converter<blink::PermissionType>::ToV8(
     case blink::PermissionType::IDLE_DETECTION:
       return StringToV8(isolate, "idle-detection");
     case blink::PermissionType::KEYBOARD_LOCK:
-      return StringToV8(isolate, "keyboardLock");
+      return StringToV8(isolate, "keyboard-lock");
     case blink::PermissionType::MIDI_SYSEX:
-      return StringToV8(isolate, "midiSysex");
+      return StringToV8(isolate, "midi-sysex");
     case blink::PermissionType::NFC:
       return StringToV8(isolate, "nfc");
     case blink::PermissionType::NOTIFICATIONS:
@@ -204,9 +204,9 @@ v8::Local<v8::Value> Converter<blink::PermissionType>::ToV8(
     case blink::PermissionType::VIDEO_CAPTURE:
       return StringToV8(isolate, "media");
     case blink::PermissionType::POINTER_LOCK:
-      return StringToV8(isolate, "pointerLock");
+      return StringToV8(isolate, "pointer-lock");
     case blink::PermissionType::PROTECTED_MEDIA_IDENTIFIER:
-      return StringToV8(isolate, "mediaKeySystem");
+      return StringToV8(isolate, "media-key-system");
     case blink::PermissionType::MIDI:
       return StringToV8(isolate, "midi");
     case blink::PermissionType::WAKE_LOCK_SCREEN:
@@ -243,7 +243,7 @@ v8::Local<v8::Value> Converter<blink::PermissionType>::ToV8(
     case PermissionType::FULLSCREEN:
       return StringToV8(isolate, "fullscreen");
     case PermissionType::OPEN_EXTERNAL:
-      return StringToV8(isolate, "openExternal");
+      return StringToV8(isolate, "open-external");
     case PermissionType::SERIAL:
       return StringToV8(isolate, "serial");
     case PermissionType::HID:
@@ -251,7 +251,7 @@ v8::Local<v8::Value> Converter<blink::PermissionType>::ToV8(
     case PermissionType::USB:
       return StringToV8(isolate, "usb");
     case PermissionType::FILE_SYSTEM:
-      return StringToV8(isolate, "fileSystem");
+      return StringToV8(isolate, "file-system");
     default:
       return StringToV8(isolate, "unknown");
   }

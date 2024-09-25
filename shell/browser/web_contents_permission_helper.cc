@@ -214,6 +214,7 @@ void WebContentsPermissionHelper::RequestPermission(
     base::OnceCallback<void(bool)> callback,
     bool user_gesture,
     base::Value::Dict details) {
+  DCHECK(requesting_frame);
   auto* permission_manager = static_cast<ElectronPermissionManager*>(
       web_contents_->GetBrowserContext()->GetPermissionControllerDelegate());
   permission_manager->RequestPermissionWithDetails(
@@ -225,8 +226,7 @@ void WebContentsPermissionHelper::RequestFullscreenPermission(
     content::RenderFrameHost* requesting_frame,
     base::OnceCallback<void(bool)> callback) {
   RequestPermission(
-      requesting_frame,
-      requesting_frame->GetLastCommittedOrigin(),
+      requesting_frame, requesting_frame->GetLastCommittedOrigin(),
       static_cast<blink::PermissionType>(PermissionType::FULLSCREEN),
       std::move(callback));
 }
@@ -253,7 +253,7 @@ void WebContentsPermissionHelper::RequestMediaAccessPermission(
   // The permission type doesn't matter here, AUDIO_CAPTURE/VIDEO_CAPTURE
   // are presented as same type in content_converter.h.
   auto* frame = content::RenderFrameHost::FromID(request.render_process_id,
-                                                     request.render_frame_id);
+                                                 request.render_frame_id);
   RequestPermission(frame, request.url_origin,
                     blink::PermissionType::AUDIO_CAPTURE, std::move(callback),
                     false, std::move(details));
@@ -262,8 +262,9 @@ void WebContentsPermissionHelper::RequestMediaAccessPermission(
 void WebContentsPermissionHelper::RequestWebNotificationPermission(
     content::RenderFrameHost* requesting_frame,
     base::OnceCallback<void(bool)> callback) {
-  RequestPermission(requesting_frame, requesting_frame->GetLastCommittedOrigin(), blink::PermissionType::NOTIFICATIONS,
-                    std::move(callback));
+  RequestPermission(requesting_frame,
+                    requesting_frame->GetLastCommittedOrigin(),
+                    blink::PermissionType::NOTIFICATIONS, std::move(callback));
 }
 
 void WebContentsPermissionHelper::RequestPointerLockPermission(
@@ -272,8 +273,7 @@ void WebContentsPermissionHelper::RequestPointerLockPermission(
     bool last_unlocked_by_target,
     base::OnceCallback<void(content::WebContents*, bool, bool, bool)>
         callback) {
-  RequestPermission(frame,
-                    frame->GetLastCommittedOrigin(),
+  RequestPermission(frame, frame->GetLastCommittedOrigin(),
                     blink::PermissionType::POINTER_LOCK,
                     base::BindOnce(std::move(callback), web_contents_,
                                    user_gesture, last_unlocked_by_target),
@@ -285,8 +285,7 @@ void WebContentsPermissionHelper::RequestKeyboardLockPermission(
     bool esc_key_locked,
     base::OnceCallback<void(content::WebContents*, bool, bool)> callback) {
   RequestPermission(
-      requesting_frame,
-      requesting_frame->GetLastCommittedOrigin(),
+      requesting_frame, requesting_frame->GetLastCommittedOrigin(),
       blink::PermissionType::KEYBOARD_LOCK,
       base::BindOnce(std::move(callback), web_contents_, esc_key_locked));
 }
@@ -299,8 +298,7 @@ void WebContentsPermissionHelper::RequestOpenExternalPermission(
   base::Value::Dict details;
   details.Set("externalURL", url.spec());
   RequestPermission(
-      requesting_frame,
-      requesting_frame->GetLastCommittedOrigin(),
+      requesting_frame, requesting_frame->GetLastCommittedOrigin(),
       static_cast<blink::PermissionType>(PermissionType::OPEN_EXTERNAL),
       std::move(callback), user_gesture, std::move(details));
 }
@@ -319,8 +317,9 @@ bool WebContentsPermissionHelper::CheckMediaAccessPermission(
 
   auto* permission_manager = static_cast<ElectronPermissionManager*>(
       web_contents_->GetBrowserContext()->GetPermissionControllerDelegate());
-  return permission_manager->CheckPermissionWithDetailsAndFrame(blink_type, security_origin, requesting_frame,
-                                                        std::move(details)) != blink::mojom::PermissionStatus::DENIED;
+  return permission_manager->CheckPermissionWithDetailsAndFrame(
+             blink_type, security_origin, requesting_frame,
+             std::move(details)) != blink::mojom::PermissionStatus::DENIED;
 }
 
 WEB_CONTENTS_USER_DATA_KEY_IMPL(WebContentsPermissionHelper);

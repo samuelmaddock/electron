@@ -35,16 +35,21 @@ Session.prototype.setDisplayMediaRequestHandler = function (handler, opts) {
   }, opts);
 };
 
-// Add an extra warning to inform developers of permission string change.
-const clipboardReadDeprecated = deprecate.warnOnceMessage('"clipboard-read" permission has been deprecated. Please use \'session.setPermissionHandlers\' instead.');
+/** Map new permission to deprecated permission. */
+type NewPermission = Parameters<Electron.PermissionHandlers['isGranted']>[0] | Parameters<Electron.PermissionHandlers['onRequest']>[0];
+const deprecatedPermissionMap = new Map<NewPermission, string>([
+  ['clipboard-read-write', 'clipboard-read'],
+  ['keyboard-lock', 'keyboardLock'],
+  ['midi-sysex', 'midiSysex'],
+  ['pointer-lock', 'pointerLock'],
+  ['media-key-system', 'mediaKeySystem'],
+  ['open-external', 'openExternal'],
+  ['file-system', 'fileSystem']
+]);
 
 /** Rewrite new permission to old permission. */
 const maybeRewritePermission = (permission: any): any => {
-  if (permission === 'clipboard-read-write') {
-    clipboardReadDeprecated();
-    return 'clipboard-read';
-  }
-  return permission;
+  return deprecatedPermissionMap.get(permission) || permission;
 };
 
 const setPermissionCheckHandlerDeprecated = deprecate.warnOnce('session.setPermissionCheckHandler', 'session.setPermissionHandlers');
