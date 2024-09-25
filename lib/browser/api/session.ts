@@ -75,28 +75,45 @@ Session.prototype.setPermissionRequestHandler = function (handler) {
   });
 };
 
-Session.prototype.setPermissionHandlers = function (handlers) {
+const isHandlersObject = (handlers: unknown): handlers is Electron.PermissionHandlers => {
+  if (typeof handlers !== 'object') {
+    throw new TypeError('Missing required handlers argument');
+  } else if (typeof (handlers as any).isGranted !== 'function') {
+    throw new TypeError('Expected handlers object to contain a \'isGranted\' function property');
+  } else if (typeof (handlers as any).onRequest !== 'function') {
+    throw new TypeError('Expected handlers object to contain a \'onRequest\' function property');
+  }
+  return true;
+};
+const isPermissionResult = (result: unknown): result is Electron.PermissionCheckResult => {
+  if (typeof result !== 'object' || !result || typeof (result as any).status !== 'string') {
+    console.warn('Expected permission result to be an object with status string property. Assuming \'denied\' instead.');
+    return false;
+  }
+  return true;
+};
+
+Session.prototype.setPermissionHandlers = function (handlers: unknown) {
   if (!handlers) {
     this._setPermissionCheckHandler(null);
     this._setPermissionRequestHandler(null);
     return;
   }
 
-  if (typeof handlers !== 'object') {
-    throw new TypeError('Missing required handlers argument');
-  } else if (typeof handlers.isGranted !== 'function') {
-    throw new TypeError('Expected handlers object to contain a \'isGranted\' function property');
-  } else if (typeof handlers.onRequest !== 'function') {
-    throw new TypeError('Expected handlers object to contain a \'onRequest\' function property');
-  }
+  if (!isHandlersObject(handlers)) return;
 
   this._setPermissionCheckHandler((_, permission: any, effectiveOrigin, details) => {
-    return handlers.isGranted(permission, effectiveOrigin, details).status;
+    const result: unknown = handlers.isGranted(permission, effectiveOrigin, details);
+    if (!isPermissionResult(result)) return 'denied';
+    return result.status;
   });
 
   this._setPermissionRequestHandler((_, permission: any, callback, details, effectiveOrigin) => {
     Promise.resolve(handlers.onRequest(permission, effectiveOrigin, details))
-      .then((result) => callback(result.status === 'granted'))
+      .then((result: unknown) => {
+        if (!isPermissionResult(result)) return callback(false);
+        callback(result.status === 'granted');
+      })
       .catch((err) => {
         this.emit('error', err);
         callback(false);
