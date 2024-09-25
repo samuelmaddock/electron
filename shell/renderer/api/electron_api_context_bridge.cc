@@ -26,6 +26,7 @@
 #include "third_party/blink/public/web/web_blob.h"
 #include "third_party/blink/public/web/web_element.h"
 #include "third_party/blink/public/web/web_local_frame.h"
+#include "third_party/blink/renderer/core/execution_context/execution_context.h"  // nogncheck
 
 namespace features {
 BASE_FEATURE(kContextBridgeMutability,
@@ -700,6 +701,37 @@ void ExposeAPI(v8::Isolate* isolate,
   global.SetReadOnlyNonConfigurable(key, proxy);
 }
 
+v8::MaybeLocal<v8::Context> GetTargetContext(v8::Isolate* isolate,
+                                             const int world_id) {
+  v8::Local<v8::Context> source_context = isolate->GetCurrentContext();
+  v8::MaybeLocal<v8::Context> maybe_target_context;
+
+  auto* ec = blink::ExecutionContext::From(source_context);
+  if (ec->IsWindow()) {
+    auto* render_frame = GetRenderFrame(source_context->Global());
+    CHECK(render_frame);
+    auto* frame = render_frame->GetWebFrame();
+    CHECK(frame);
+
+    maybe_target_context =
+        world_id == WorldIDs::MAIN_WORLD_ID
+            ? frame->MainWorldScriptContext()
+            : frame->GetScriptContextFromWorldId(isolate, world_id);
+  } else if (ec->IsShadowRealmGlobalScope()) {
+    if (world_id != WorldIDs::MAIN_WORLD_ID) {
+      isolate->ThrowException(v8::Exception::Error(gin::StringToV8(
+          isolate, "Isolated worlds are not supported in preload realms.")));
+      return maybe_target_context;
+    }
+    maybe_target_context = electron::GetInitiatorContext(source_context);
+  } else {
+    NOTREACHED();
+  }
+
+  CHECK(!maybe_target_context.IsEmpty());
+  return maybe_target_context;
+}
+
 void ExposeAPIInWorld(v8::Isolate* isolate,
                       const int world_id,
                       const std::string& key,
@@ -707,35 +739,14 @@ void ExposeAPIInWorld(v8::Isolate* isolate,
                       gin_helper::Arguments* args) {
   TRACE_EVENT2("electron", "ContextBridge::ExposeAPIInWorld", "key", key,
                "worldId", world_id);
-
-  auto* render_frame = GetRenderFrame(isolate->GetCurrentContext()->Global());
-  CHECK(render_frame);
-  auto* frame = render_frame->GetWebFrame();
-  CHECK(frame);
-
-  v8::Local<v8::Context> target_context =
-      world_id == WorldIDs::MAIN_WORLD_ID
-          ? frame->MainWorldScriptContext()
-          : frame->GetScriptContextFromWorldId(isolate, world_id);
-
-  v8::Local<v8::Context> electron_isolated_context =
-      frame->GetScriptContextFromWorldId(args->isolate(),
-                                         WorldIDs::ISOLATED_WORLD_ID);
-
-  ExposeAPI(isolate, electron_isolated_context, target_context, key, api, args);
-}
-
-void ExposeAPIInInitiatorWorld(v8::Isolate* isolate,
-                               const std::string& key,
-                               v8::Local<v8::Value> api,
-                               gin_helper::Arguments* args) {
   v8::Local<v8::Context> source_context = isolate->GetCurrentContext();
-  v8::MaybeLocal<v8::Context> target_context =
-      electron::GetInitiatorContext(source_context);
-  DCHECK(!source_context.IsEmpty());
-  DCHECK(!target_context.IsEmpty());
-  ExposeAPI(isolate, source_context, target_context.ToLocalChecked(), key, api,
-            args);
+  CHECK(!source_context.IsEmpty());
+  v8::MaybeLocal<v8::Context> maybe_target_context =
+      GetTargetContext(isolate, world_id);
+  if (maybe_target_context.IsEmpty())
+    return;
+  v8::Local<v8::Context> target_context = maybe_target_context.ToLocalChecked();
+  ExposeAPI(isolate, source_context, target_context, key, api, args);
 }
 
 gin_helper::Dictionary TraceKeyPath(const gin_helper::Dictionary& start,
@@ -833,28 +844,39 @@ bool OverrideGlobalPropertyFromIsolatedWorld(
 }
 
 bool IsCalledFromMainWorld(v8::Isolate* isolate) {
-  auto* render_frame = GetRenderFrame(isolate->GetCurrentContext()->Global());
-  CHECK(render_frame);
-  auto* frame = render_frame->GetWebFrame();
-  CHECK(frame);
-  v8::Local<v8::Context> main_context = frame->MainWorldScriptContext();
-  return isolate->GetCurrentContext() == main_context;
+  v8::Local<v8::Context> source_context = isolate->GetCurrentContext();
+  auto* ec = blink::ExecutionContext::From(source_context);
+  if (ec->IsWindow()) {
+    auto* render_frame = GetRenderFrame(source_context->Global());
+    CHECK(render_frame);
+    auto* frame = render_frame->GetWebFrame();
+    CHECK(frame);
+    v8::Local<v8::Context> main_context = frame->MainWorldScriptContext();
+    return source_context == main_context;
+  } else if (ec->IsShadowRealmGlobalScope()) {
+    return false;
+  } else if (ec->IsServiceWorkerGlobalScope()) {
+    return true;
+  } else {
+    NOTREACHED();
+  }
 }
 
-v8::Local<v8::Value> EvaluateInInitiatorWorld(v8::Isolate* isolate,
-                                              const std::string& source,
-                                              gin_helper::Arguments* args) {
-  v8::Local<v8::Context> source_context = isolate->GetCurrentContext();
-  v8::MaybeLocal<v8::Context> maybe_initiator_context =
-      electron::GetInitiatorContext(source_context);
-  DCHECK(!maybe_initiator_context.IsEmpty());
-  v8::Local<v8::Context> initiator_context =
-      maybe_initiator_context.ToLocalChecked();
+v8::Local<v8::Value> EvaluateInWorld(v8::Isolate* isolate,
+                                     const int world_id,
+                                     const std::string& source,
+                                     gin_helper::Arguments* args) {
+  v8::MaybeLocal<v8::Context> maybe_target_context =
+      GetTargetContext(isolate, world_id);
+  if (maybe_target_context.IsEmpty())
+    return v8::Local<v8::Value>();
 
-  v8::Context::Scope initiator_scope(initiator_context);
+  v8::Local<v8::Context> target_context = maybe_target_context.ToLocalChecked();
+
+  v8::Context::Scope target_scope(target_context);
   v8::TryCatch try_catch(isolate);
   auto maybe_script =
-      v8::Script::Compile(initiator_context, gin::StringToV8(isolate, source));
+      v8::Script::Compile(target_context, gin::StringToV8(isolate, source));
   v8::Local<v8::Script> script;
   if (!maybe_script.ToLocal(&script)) {
     return v8::Local<v8::Value>();
@@ -864,7 +886,7 @@ v8::Local<v8::Value> EvaluateInInitiatorWorld(v8::Isolate* isolate,
     return v8::Local<v8::Value>();
   }
   // TODO: clone result into context
-  return script->Run(initiator_context).ToLocalChecked();
+  return script->Run(target_context).ToLocalChecked();
 }
 
 }  // namespace api
@@ -879,10 +901,7 @@ void Initialize(v8::Local<v8::Object> exports,
                 void* priv) {
   v8::Isolate* isolate = context->GetIsolate();
   gin_helper::Dictionary dict(isolate, exports);
-  dict.SetMethod("evaluateInInitiatorWorld",
-                 &electron::api::EvaluateInInitiatorWorld);
-  dict.SetMethod("exposeAPIInInitiatorWorld",
-                 &electron::api::ExposeAPIInInitiatorWorld);
+  dict.SetMethod("evaluateInWorld", &electron::api::EvaluateInWorld);
   dict.SetMethod("exposeAPIInWorld", &electron::api::ExposeAPIInWorld);
   dict.SetMethod("_overrideGlobalValueFromIsolatedWorld",
                  &electron::api::OverrideGlobalValueFromIsolatedWorld);
