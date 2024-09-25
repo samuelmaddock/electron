@@ -242,7 +242,7 @@ void ElectronPermissionManager::OnPermissionResponse(
 
 void ElectronPermissionManager::ResetPermission(
     blink::PermissionType permission,
-    const GURL& effective_origin,
+    const GURL& requesting_origin,
     const GURL& embedding_origin) {}
 
 void ElectronPermissionManager::RequestPermissionsFromCurrentDocument(
@@ -263,12 +263,12 @@ void ElectronPermissionManager::RequestPermissionsFromCurrentDocument(
 
 blink::mojom::PermissionStatus ElectronPermissionManager::GetPermissionStatus(
     blink::PermissionType permission,
-    const GURL& effective_origin,
+    const GURL& requesting_origin,
     const GURL& embedding_origin) {
   base::Value::Dict details;
   details.Set("embeddingOrigin", embedding_origin.spec());
   return CheckPermissionWithDetails(
-      permission, url::Origin::Create(effective_origin), std::move(details));
+      permission, url::Origin::Create(requesting_origin), std::move(details));
 }
 
 content::PermissionResult
@@ -408,13 +408,13 @@ blink::mojom::PermissionStatus
 ElectronPermissionManager::GetPermissionStatusForEmbeddedRequester(
     blink::PermissionType permission,
     content::RenderFrameHost* render_frame_host,
-    const url::Origin& overridden_origin) {
+    const url::Origin& requesting_origin) {
   if (render_frame_host->IsNestedWithinFencedFrame())
     return blink::mojom::PermissionStatus::DENIED;
 
   base::Value::Dict details;
   return CheckPermissionWithDetailsAndFrame(
-      permission, overridden_origin, render_frame_host, std::move(details));
+      permission, requesting_origin, render_frame_host, std::move(details));
 }
 
 }  // namespace electron

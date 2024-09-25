@@ -48,16 +48,18 @@ class ElectronPermissionManager : public content::PermissionControllerDelegate {
   using StatusesCallback = base::OnceCallback<void(
       const std::vector<blink::mojom::PermissionStatus>&)>;
   using PairCallback = base::OnceCallback<void(base::Value::Dict)>;
-  using OnRequestHandler = base::RepeatingCallback<void(content::WebContents*,
-                                                      blink::PermissionType,
-                                                      StatusCallback,
-                                                      const base::Value&,
-                                                      const url::Origin& effective_origin)>;
-  using IsGrantedHandler =
-      base::RepeatingCallback<std::optional<blink::mojom::PermissionStatus>(content::WebContents*,
+  using OnRequestHandler =
+      base::RepeatingCallback<void(content::WebContents*,
                                    blink::PermissionType,
-                                   const url::Origin& effective_origin,
-                                   const base::Value&)>;
+                                   StatusCallback,
+                                   const base::Value&,
+                                   const url::Origin& effective_origin)>;
+  using IsGrantedHandler =
+      base::RepeatingCallback<std::optional<blink::mojom::PermissionStatus>(
+          content::WebContents*,
+          blink::PermissionType,
+          const url::Origin& effective_origin,
+          const base::Value&)>;
 
   using DeviceCheckHandler =
       base::RepeatingCallback<bool(const v8::Local<v8::Object>&)>;
@@ -97,14 +99,17 @@ class ElectronPermissionManager : public content::PermissionControllerDelegate {
   USBProtectedClasses CheckProtectedUSBClasses(
       const USBProtectedClasses& classes) const;
 
-  // Permission granted checks, maps to session.setPermissionHandlers({ isGranted })
-  blink::mojom::PermissionStatus CheckPermissionWithDetails(blink::PermissionType permission,
-                                  const url::Origin& effective_origin,
-                                  base::Value::Dict details) const;
-  blink::mojom::PermissionStatus CheckPermissionWithDetailsAndFrame(blink::PermissionType permission,
-                                          const url::Origin& effective_origin,
-                                          content::RenderFrameHost* requesting_frame,
-                                          base::Value::Dict details) const;
+  // Permission granted checks, maps to session.setPermissionHandlers({
+  // isGranted })
+  blink::mojom::PermissionStatus CheckPermissionWithDetails(
+      blink::PermissionType permission,
+      const url::Origin& effective_origin,
+      base::Value::Dict details) const;
+  blink::mojom::PermissionStatus CheckPermissionWithDetailsAndFrame(
+      blink::PermissionType permission,
+      const url::Origin& effective_origin,
+      content::RenderFrameHost* requesting_frame,
+      base::Value::Dict details) const;
 
   // Permission requests, maps to session.setPermissionHandlers({ onRequest })
   void RequestPermissionWithDetails(blink::PermissionType permission,
@@ -125,11 +130,11 @@ class ElectronPermissionManager : public content::PermissionControllerDelegate {
       const content::PermissionRequestDescription& request_description,
       StatusesCallback callback) override;
   void ResetPermission(blink::PermissionType permission,
-                       const GURL& effective_origin,
+                       const GURL& requesting_origin,
                        const GURL& embedding_origin) override;
   blink::mojom::PermissionStatus GetPermissionStatus(
       blink::PermissionType permission,
-      const GURL& effective_origin,
+      const GURL& requesting_origin,
       const GURL& embedding_origin) override;
   void RequestPermissionsFromCurrentDocument(
       content::RenderFrameHost* render_frame_host,
@@ -139,7 +144,7 @@ class ElectronPermissionManager : public content::PermissionControllerDelegate {
       override;
   content::PermissionResult GetPermissionResultForOriginWithoutContext(
       blink::PermissionType permission,
-      const url::Origin& effective_origin,
+      const url::Origin& requesting_origin,
       const url::Origin& embedding_origin) override;
   blink::mojom::PermissionStatus GetPermissionStatusForCurrentDocument(
       blink::PermissionType permission,
