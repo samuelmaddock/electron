@@ -61,6 +61,10 @@ The `contextBridge` module has the following methods:
 * `apiKey` string - The key to inject the API onto `window` with.  The API will be accessible on `window[apiKey]`.
 * `api` any - Your API, more information on what this API can be and how it works is available below.
 
+### `contextBridge.evaluateInMainWorld(code)` _Experimental_
+
+* `code` String
+
 ## Usage
 
 ### API
