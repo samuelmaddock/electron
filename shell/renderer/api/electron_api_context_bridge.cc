@@ -385,24 +385,28 @@ v8::MaybeLocal<v8::Value> PassValueToOtherContext(
     return v8::MaybeLocal<v8::Value>(cloned_arr);
   }
 
-  // Custom logic to "clone" Element references
-  // blink::WebElement elem =
-  //     blink::WebElement::FromV8Value(destination_context->GetIsolate(),
-  //     value);
-  // if (!elem.IsNull()) {
-  //   v8::Context::Scope destination_context_scope(destination_context);
-  //   return v8::MaybeLocal<v8::Value>(
-  //       elem.ToV8Value(destination_context->GetIsolate()));
-  // }
+  // Clone certain DOM APIs only within Window contexts.
+  blink::ExecutionContext* execution_context =
+      blink::ExecutionContext::From(destination_context);
+  if (execution_context->IsWindow()) {
+    // Custom logic to "clone" Element references
+    blink::WebElement elem = blink::WebElement::FromV8Value(
+        destination_context->GetIsolate(), value);
+    if (!elem.IsNull()) {
+      v8::Context::Scope destination_context_scope(destination_context);
+      return v8::MaybeLocal<v8::Value>(
+          elem.ToV8Value(destination_context->GetIsolate()));
+    }
 
-  // // Custom logic to "clone" Blob references
-  // blink::WebBlob blob =
-  //     blink::WebBlob::FromV8Value(destination_context->GetIsolate(), value);
-  // if (!blob.IsNull()) {
-  //   v8::Context::Scope destination_context_scope(destination_context);
-  //   return v8::MaybeLocal<v8::Value>(
-  //       blob.ToV8Value(destination_context->GetIsolate()));
-  // }
+    // Custom logic to "clone" Blob references
+    blink::WebBlob blob =
+        blink::WebBlob::FromV8Value(destination_context->GetIsolate(), value);
+    if (!blob.IsNull()) {
+      v8::Context::Scope destination_context_scope(destination_context);
+      return v8::MaybeLocal<v8::Value>(
+          blob.ToV8Value(destination_context->GetIsolate()));
+    }
+  }
 
   // Proxy all objects
   if (IsPlainObject(value)) {
@@ -711,8 +715,9 @@ v8::MaybeLocal<v8::Context> GetTargetContext(v8::Isolate* isolate,
   v8::Local<v8::Context> source_context = isolate->GetCurrentContext();
   v8::MaybeLocal<v8::Context> maybe_target_context;
 
-  auto* ec = blink::ExecutionContext::From(source_context);
-  if (ec->IsWindow()) {
+  blink::ExecutionContext* execution_context =
+      blink::ExecutionContext::From(source_context);
+  if (execution_context->IsWindow()) {
     auto* render_frame = GetRenderFrame(source_context->Global());
     CHECK(render_frame);
     auto* frame = render_frame->GetWebFrame();
@@ -722,7 +727,7 @@ v8::MaybeLocal<v8::Context> GetTargetContext(v8::Isolate* isolate,
         world_id == WorldIDs::MAIN_WORLD_ID
             ? frame->MainWorldScriptContext()
             : frame->GetScriptContextFromWorldId(isolate, world_id);
-  } else if (ec->IsShadowRealmGlobalScope()) {
+  } else if (execution_context->IsShadowRealmGlobalScope()) {
     if (world_id != WorldIDs::MAIN_WORLD_ID) {
       isolate->ThrowException(v8::Exception::Error(gin::StringToV8(
           isolate, "Isolated worlds are not supported in preload realms.")));
@@ -974,8 +979,8 @@ v8::Local<v8::Value> EvaluateInWorld(v8::Isolate* isolate,
       CloneValueToContext(isolate, result, source_context, clone_error_message);
   v8::Local<v8::Value> cloned_result;
   if (!maybe_cloned_result.ToLocal(&cloned_result)) {
-    isolate->ThrowException(v8::Exception::Error(
-        gin::StringToV8(isolate, "Unknown error")));  // TODO
+    isolate->ThrowException(
+        v8::Exception::Error(gin::StringToV8(isolate, clone_error_message)));
     return v8::Local<v8::Value>();
   }
   return cloned_result;
