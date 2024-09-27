@@ -11,7 +11,7 @@ namespace blink {
 class WebServiceWorkerContextProxy;
 }
 
-namespace electron {
+namespace electron::preload_realm {
 
 v8::MaybeLocal<v8::Context> GetInitiatorContext(v8::Local<v8::Context> context);
 
@@ -22,6 +22,6 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
     v8::Local<v8::Context> initiator_context,
     blink::WebServiceWorkerContextProxy* proxy);
 
-}  // namespace electron
+}  // namespace electron::preload_realm
 
 #endif  // ELECTRON_SHELL_RENDERER_PRELOAD_REALM_CONTEXT_H_

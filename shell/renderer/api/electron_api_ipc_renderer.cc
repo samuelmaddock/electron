@@ -44,7 +44,7 @@ RenderFrame* GetCurrentRenderFrame() {
 }
 
 class IPCRenderer final : public gin::Wrappable<IPCRenderer> {
-                          // private content::RenderFrameObserver {
+  // private content::RenderFrameObserver {
  public:
   static gin::WrapperInfo kWrapperInfo;
 
@@ -64,7 +64,7 @@ class IPCRenderer final : public gin::Wrappable<IPCRenderer> {
           &electron_ipc_remote_);
     } else if (execution_context->IsShadowRealmGlobalScope()) {
       blink::WebServiceWorkerContextProxy* proxy =
-          electron::GetServiceWorkerProxy(context);
+          electron::preload_realm::GetServiceWorkerProxy(context);
       DCHECK(proxy);
       proxy->GetRemoteAssociatedInterface(
           electron_ipc_remote_.BindNewEndpointAndPassReceiver());
