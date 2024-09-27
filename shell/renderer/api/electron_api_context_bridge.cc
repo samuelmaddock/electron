@@ -912,8 +912,8 @@ v8::MaybeLocal<v8::Value> CloneValueToContext(
   return maybe_result;
 }
 
-// Evaluate a script into the target world ID. The script is executed
-// synchronously and does not await a promise if returned.
+// Evaluate a script in the target world ID. The script is executed
+// synchronously and clones the result into the calling context.
 v8::Local<v8::Value> EvaluateInWorld(v8::Isolate* isolate,
                                      const int world_id,
                                      const std::string& source,
