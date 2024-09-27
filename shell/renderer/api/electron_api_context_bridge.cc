@@ -872,7 +872,8 @@ bool IsCalledFromMainWorld(v8::Isolate* isolate) {
 v8::MaybeLocal<v8::Value> CloneValueToContext(
     v8::Isolate* isolate,
     v8::Local<v8::Value> value,
-    v8::Local<v8::Context> target_context) {
+    v8::Local<v8::Context> target_context,
+    std::string& error_message) {
   // Objects with prototype chains need to be protected and thus cloned.
   // Primitive values are fine as is.
   if (!value->IsObject()) {
@@ -898,7 +899,8 @@ v8::MaybeLocal<v8::Value> CloneValueToContext(
                                 creation_context->Global(), &object_cache,
                                 false, 0, BridgeErrorTarget::kSource);
     if (try_catch.HasCaught()) {
-      // TODO: copy out error
+      v8::String::Utf8Value utf8(isolate, try_catch.Exception());
+      error_message = *utf8 ? *utf8 : "Unknown error cloning result";
     }
   }
 
@@ -967,8 +969,9 @@ v8::Local<v8::Value> EvaluateInWorld(v8::Isolate* isolate,
 
   // Clone the value into the callee/source context
   v8::Context::Scope target_scope(target_context);
+  std::string clone_error_message;
   v8::MaybeLocal<v8::Value> maybe_cloned_result =
-      CloneValueToContext(isolate, result, source_context);
+      CloneValueToContext(isolate, result, source_context, clone_error_message);
   v8::Local<v8::Value> cloned_result;
   if (!maybe_cloned_result.ToLocal(&cloned_result)) {
     isolate->ThrowException(v8::Exception::Error(
