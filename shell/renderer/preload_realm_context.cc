@@ -27,7 +27,7 @@
 #include "third_party/blink/renderer/platform/context_lifecycle_observer.h"  // nogncheck
 #include "v8/include/v8-context.h"
 
-namespace electron {
+namespace electron::preload_realm {
 
 namespace {
 
@@ -362,4 +362,4 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
   return context;
 }
 
-}  // namespace electron
+}  // namespace electron::preload_realm

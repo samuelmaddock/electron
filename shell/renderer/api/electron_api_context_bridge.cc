@@ -733,7 +733,8 @@ v8::MaybeLocal<v8::Context> GetTargetContext(v8::Isolate* isolate,
           isolate, "Isolated worlds are not supported in preload realms.")));
       return maybe_target_context;
     }
-    maybe_target_context = electron::GetInitiatorContext(source_context);
+    maybe_target_context =
+        electron::preload_realm::GetInitiatorContext(source_context);
   } else {
     NOTREACHED();
   }
