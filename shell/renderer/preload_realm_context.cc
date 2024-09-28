@@ -132,7 +132,7 @@ class ShadowRealmLifetimeController
     // DCHECK(shadow_realm_script_state_.IsSet());
     // TODO: why is this being called early?
     LOG(INFO) << "*** ~ShadowRealmLifetimeController\n";
-    LOG(INFO) << base::debug::StackTrace();
+    // LOG(INFO) << base::debug::StackTrace();
   }
 
   static ShadowRealmLifetimeController* From(v8::Local<v8::Context> context) {
@@ -168,6 +168,11 @@ class ShadowRealmLifetimeController
  protected:
   void ContextDestroyed() override {
     LOG(INFO) << "***ShadowRealmLifetimeController::ContextDestroyed\n";
+
+    // TODO: figure out why a handle scope prevents a crash here
+    // Repro: register MV3 extension with a script error. it will evaluate
+    // and immediately destroy the context
+    v8::HandleScope handle_scope(shadow_realm_script_state_->GetIsolate());
     realm_context()->SetAlignedPointerInEmbedderData(
         kElectronContextEmbedderDataIndex, nullptr);
     shadow_realm_script_state_->DisposePerContextData();
