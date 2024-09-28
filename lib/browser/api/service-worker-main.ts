@@ -1,6 +1,6 @@
 import { IpcMainImpl } from '@electron/internal/browser/ipc-main-impl';
 
-const { ServiceWorkerMain, fromVersionId } = process._linkedBinding('electron_browser_service_worker_main');
+const { ServiceWorkerMain } = process._linkedBinding('electron_browser_service_worker_main');
 
 Object.defineProperty(ServiceWorkerMain.prototype, 'ipc', {
   get () {
@@ -10,6 +10,4 @@ Object.defineProperty(ServiceWorkerMain.prototype, 'ipc', {
   }
 });
 
-export default {
-  fromVersionId
-};
+module.exports = ServiceWorkerMain;
