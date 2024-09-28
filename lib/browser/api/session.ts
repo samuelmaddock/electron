@@ -34,6 +34,7 @@ const addReturnValueToEvent = (event: Electron.IpcMainEvent) => {
 Session.prototype._init = function () {
   const getWorkerFromEvent = (event: any): ServiceWorkerMain => {
     const worker = (this.serviceWorkers as any)._fromVersionIDIfExists((event as any).versionId);
+    event.worker = worker;
     return worker;
   };
 

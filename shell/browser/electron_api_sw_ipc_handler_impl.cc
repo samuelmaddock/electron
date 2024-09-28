@@ -68,6 +68,7 @@ void ElectronApiSWIPCHandlerImpl::RemoteDisconnected() {
 void ElectronApiSWIPCHandlerImpl::Message(bool internal,
                                           const std::string& channel,
                                           blink::CloneableMessage arguments) {
+  LOG(INFO) << "***ElectronApiSWIPCHandlerImpl::Message" << channel;
   auto* session = GetSession();
   if (session) {
     v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
@@ -82,6 +83,7 @@ void ElectronApiSWIPCHandlerImpl::Invoke(bool internal,
                                          const std::string& channel,
                                          blink::CloneableMessage arguments,
                                          InvokeCallback callback) {
+  LOG(INFO) << "***ElectronApiSWIPCHandlerImpl::Invoke" << channel;
   auto* session = GetSession();
   if (session) {
     v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
