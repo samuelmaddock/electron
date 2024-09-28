@@ -232,11 +232,6 @@ void ElectronSandboxedRendererClient::EmitProcessEvent(
   InvokeEmitProcessEvent(context, event_name);
 }
 
-void ElectronSandboxedRendererClient::DidInitializeWorkerContextOnWorkerThread(
-    v8::Local<v8::Context> context) {
-  // TODO(samuelmaddock): create preload realm for workers?
-}
-
 void ElectronSandboxedRendererClient::WillEvaluateServiceWorkerOnWorkerThread(
     blink::WebServiceWorkerContextProxy* context_proxy,
     v8::Local<v8::Context> v8_context,
