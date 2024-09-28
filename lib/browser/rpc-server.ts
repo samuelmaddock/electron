@@ -58,15 +58,21 @@ const getPreloadScriptsFromEvent = (event: ElectronInternal.IpcMainInternalEvent
   return preloadScripts;
 };
 
-const readPreloadScript = async function (script: Electron.PreloadScript) {
-  let preloadSrc = null;
-  let preloadError = null;
+const readPreloadScript = async function (script: Electron.PreloadScript): Promise<ElectronInternal.PreloadScript> {
+  let contents;
+  let error;
   try {
-    preloadSrc = await fs.promises.readFile(script.filePath, 'utf8');
-  } catch (error) {
-    preloadError = error;
+    contents = await fs.promises.readFile(script.filePath, 'utf8');
+  } catch (err) {
+    if (err instanceof Error) {
+      error = err;
+    }
   }
-  return { preloadPath: script.filePath, preloadSrc, preloadError };
+  return {
+    ...script,
+    contents,
+    error
+  };
 };
 
 ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_SANDBOX_LOAD, async function (event) {

@@ -334,6 +334,11 @@ declare namespace ElectronInternal {
   class WebContents extends Electron.WebContents {
     static create(opts?: Electron.WebPreferences): Electron.WebContents;
   }
+
+  interface PreloadScript extends Electron.PreloadScript {
+    contents?: string;
+    error?: Error;
+  }
 }
 
 declare namespace Chrome {
