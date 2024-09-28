@@ -42,8 +42,6 @@ class ElectronSandboxedRendererClient : public RendererClientBase {
   void RenderFrameCreated(content::RenderFrame*) override;
   void RunScriptsAtDocumentStart(content::RenderFrame* render_frame) override;
   void RunScriptsAtDocumentEnd(content::RenderFrame* render_frame) override;
-  void DidInitializeWorkerContextOnWorkerThread(
-      v8::Local<v8::Context> context) override;
   void WillEvaluateServiceWorkerOnWorkerThread(
       blink::WebServiceWorkerContextProxy* context_proxy,
       v8::Local<v8::Context> v8_context,
