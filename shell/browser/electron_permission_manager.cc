@@ -95,6 +95,46 @@ class ElectronPermissionManager::PendingRequest {
     }
   }
 
+  void NotifyChangeListeners(
+      content::PermissionController::SubscriptionsMap* subscriptions) {
+    if (subscriptions->IsEmpty())
+      return;
+
+    base::flat_map<blink::PermissionType, blink::mojom::PermissionStatus>
+        permission_map;
+    for (size_t i = 0; i < permissions_.size(); ++i) {
+      blink::PermissionType& permission = permissions_[i];
+      blink::mojom::PermissionStatus status = results_[i];
+      permission_map[permission] = status;
+    }
+
+    std::vector<base::OnceClosure> callbacks;
+    for (content::PermissionController::SubscriptionsMap::iterator iter(
+             subscriptions);
+         !iter.IsAtEnd(); iter.Advance()) {
+      content::PermissionStatusSubscription* subscription =
+          iter.GetCurrentValue();
+      if (!subscription) {
+        continue;
+      }
+
+      auto it = permission_map.find(subscription->permission);
+      if (it == permission_map.end()) {
+        continue;
+      }
+
+      blink::mojom::PermissionStatus new_status = it->second;
+
+      // Add the callback to |callbacks| which will be run after the loop to
+      // prevent re-entrance issues.
+      callbacks.push_back(base::BindOnce(subscription->callback, new_status,
+                                         /*ignore_status_override=*/false));
+    }
+
+    for (auto& callback : callbacks)
+      std::move(callback).Run();
+  }
+
  private:
   content::GlobalRenderFrameHostId render_frame_host_id_;
   StatusesCallback callback_;
@@ -113,8 +153,10 @@ void ElectronPermissionManager::SetPermissionRequestHandler(
     for (PendingRequestsMap::iterator iter(&pending_requests_); !iter.IsAtEnd();
          iter.Advance()) {
       auto* request = iter.GetCurrentValue();
-      if (!WebContentsDestroyed(request->GetRenderFrameHost()))
+      if (!WebContentsDestroyed(request->GetRenderFrameHost())) {
         request->RunCallback();
+        request->NotifyChangeListeners(subscriptions());
+      }
     }
     pending_requests_.Clear();
   }
@@ -236,6 +278,7 @@ void ElectronPermissionManager::OnPermissionResponse(
   pending_request->SetPermissionStatus(permission_id, status);
   if (pending_request->IsComplete()) {
     pending_request->RunCallback();
+    pending_request->NotifyChangeListeners(subscriptions());
     pending_requests_.Remove(request_id);
   }
 }
