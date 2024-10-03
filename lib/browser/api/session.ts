@@ -24,7 +24,7 @@ Object.defineProperty(systemPickerVideoSource, 'id', {
 systemPickerVideoSource.name = '';
 Object.freeze(systemPickerVideoSource);
 
-const addReturnValueToEvent = (event: Electron.IpcMainEvent) => {
+const addReturnValueToEvent = (event: Electron.IpcMainEvent | Electron.IpcMainServiceWorkerEvent) => {
   Object.defineProperty(event, 'returnValue', {
     set: (value) => event._replyChannel.sendReply(value),
     get: () => {}
@@ -32,23 +32,27 @@ const addReturnValueToEvent = (event: Electron.IpcMainEvent) => {
 };
 
 Session.prototype._init = function () {
-  const getWorkerFromEvent = (event: any): ServiceWorkerMain => {
-    const worker = (this.serviceWorkers as any)._fromVersionIDIfExists((event as any).versionId);
-    event.worker = worker;
-    return worker;
+  const getServiceWorkerFromEvent = (event: Electron.IpcMainServiceWorkerEvent | Electron.IpcMainServiceWorkerInvokeEvent): ServiceWorkerMain | null => {
+    return this.serviceWorkers._fromVersionIDIfExists(event.versionId); ;
+  };
+  const addServiceWorkerPropertyToEvent = (event: Electron.IpcMainServiceWorkerEvent | Electron.IpcMainServiceWorkerInvokeEvent) => {
+    Object.defineProperty(event, 'serviceWorker', {
+      get: () => this.serviceWorkers.fromVersionID(event.versionId)
+    });
   };
 
-  this.on('-ipc-message' as any, function (event: Electron.IpcMainEvent, channel: string, args: any[]) {
+  this.on('-ipc-message' as any, function (event: Electron.IpcMainEvent | Electron.IpcMainServiceWorkerEvent, channel: string, args: any[]) {
     const internal = v8Util.getHiddenValue<boolean>(event, 'internal');
 
     if (internal) {
       ipcMainInternal.emit(channel, event, ...args);
-    } else if ((event as any).type === 'service-worker') {
-      getWorkerFromEvent(event)?.ipc.emit(channel, event, ...args);
+    } else if (event.type === 'service-worker') {
+      addServiceWorkerPropertyToEvent(event);
+      getServiceWorkerFromEvent(event)?.ipc.emit(channel, event, ...args);
     }
   } as any);
 
-  this.on('-ipc-invoke' as any, async function (event: Electron.IpcMainInvokeEvent, channel: string, args: any[]) {
+  this.on('-ipc-invoke' as any, async function (event: Electron.IpcMainInvokeEvent | Electron.IpcMainServiceWorkerInvokeEvent, channel: string, args: any[]) {
     const internal = v8Util.getHiddenValue<boolean>(event, 'internal');
 
     const replyWithResult = (result: any) => event._replyChannel.sendReply({ result });
@@ -57,8 +61,16 @@ Session.prototype._init = function () {
       event._replyChannel.sendReply({ error: error.toString() });
     };
 
-    const workerIpc = getWorkerFromEvent(event)?.ipc;
-    const targets: (ElectronInternal.IpcMainInternal| undefined)[] = internal ? [ipcMainInternal] : [workerIpc];
+    const targets: (Electron.IpcMainServiceWorker | ElectronInternal.IpcMainInternal | undefined)[] = [];
+
+    if (internal) {
+      targets.push(ipcMainInternal);
+    } else if (event.type === 'service-worker') {
+      addServiceWorkerPropertyToEvent(event);
+      const workerIpc = getServiceWorkerFromEvent(event)?.ipc;
+      targets.push(workerIpc);
+    }
+
     const target = targets.find(target => (target as any)?._invokeHandlers.has(channel));
     if (target) {
       const handler = (target as any)._invokeHandlers.get(channel);
@@ -72,20 +84,22 @@ Session.prototype._init = function () {
     }
   } as any);
 
-  this.on('-ipc-message-sync' as any, function (event: Electron.IpcMainEvent, channel: string, args: any[]) {
+  this.on('-ipc-message-sync' as any, function (event: Electron.IpcMainEvent | Electron.IpcMainServiceWorkerEvent, channel: string, args: any[]) {
     const internal = v8Util.getHiddenValue<boolean>(event, 'internal');
     addReturnValueToEvent(event);
     if (internal) {
       ipcMainInternal.emit(channel, event, ...args);
-    } else if ((event as any).type === 'service-worker') {
-      getWorkerFromEvent(event)?.ipc.emit(channel, event, ...args);
+    } else if (event.type === 'service-worker') {
+      addServiceWorkerPropertyToEvent(event);
+      getServiceWorkerFromEvent(event)?.ipc.emit(channel, event, ...args);
     }
   } as any);
 
-  this.on('-ipc-ports' as any, function (event: Electron.IpcMainEvent, channel: string, message: any, ports: any[]) {
+  this.on('-ipc-ports' as any, function (event: Electron.IpcMainEvent | Electron.IpcMainServiceWorkerEvent, channel: string, message: any, ports: any[]) {
     event.ports = ports.map(p => new MessagePortMain(p));
-    if ((event as any).type === 'service-worker') {
-      getWorkerFromEvent(event)?.ipc.emit(channel, event, message);
+    if (event.type === 'service-worker') {
+      addServiceWorkerPropertyToEvent(event);
+      getServiceWorkerFromEvent(event)?.ipc.emit(channel, event, message);
     }
   } as any);
 };

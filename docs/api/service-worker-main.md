@@ -19,7 +19,7 @@ Returns `boolean` - Whether the service worker has been destroyed.
 
 #### `worker.ipc` _Readonly_
 
-An [`IpcMain`](ipc-main.md) instance scoped to the service worker.
+An [`IpcMainServiceWorker`](ipc-main-service-worker.md) instance scoped to the service worker.
 
 #### `worker.scope` _Readonly_
 
