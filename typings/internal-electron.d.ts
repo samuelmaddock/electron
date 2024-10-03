@@ -67,6 +67,10 @@ declare namespace Electron {
     }
   }
 
+  interface ServiceWorkers {
+    _fromVersionIDIfExists(versionId: number): Electron.ServiceWorkerMain | null;
+  }
+
   interface Session {
     _init(): void;
   }
@@ -187,6 +191,14 @@ declare namespace Electron {
   interface IpcMainInvokeEvent {
     _replyChannel: ReplyChannel;
     frameTreeNodeId?: number;
+  }
+
+  interface IpcMainServiceWorkerEvent {
+    _replyChannel: ReplyChannel;
+  }
+
+  interface IpcMainServiceWorkerInvokeEvent {
+    _replyChannel: ReplyChannel;
   }
 
   // Deprecated / undocumented BrowserWindow methods
