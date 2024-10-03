@@ -67,6 +67,16 @@ class ServiceWorkerMain final
   ~ServiceWorkerMain() override;
 
  private:
+  const mojo::Remote<mojom::ElectronRenderer>& GetRendererApi();
+  void MaybeSetupMojoConnection();
+  void TeardownMojoConnection();
+  void OnRendererConnectionError();
+
+  void Send(v8::Isolate* isolate,
+            bool internal,
+            const std::string& channel,
+            v8::Local<v8::Value> args);
+
   void InvalidateState();
   const content::ServiceWorkerRunningInfo* GetRunningInfo() const;
   void OnDestroyed();
@@ -85,6 +95,9 @@ class ServiceWorkerMain final
   std::unique_ptr<content::ServiceWorkerRunningInfo> running_info_;
 
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
+
+  mojo::Remote<mojom::ElectronRenderer> renderer_api_;
+  mojo::PendingReceiver<mojom::ElectronRenderer> pending_receiver_;
 
   base::WeakPtrFactory<ServiceWorkerMain> weak_factory_{this};
 };
