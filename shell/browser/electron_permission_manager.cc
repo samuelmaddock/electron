@@ -100,7 +100,7 @@ class ElectronPermissionManager::PendingRequest {
   // permissions request has completed, inform the change listeners.
   void NotifyChangeListeners(
       content::PermissionController::SubscriptionsMap* subscriptions) {
-    if (subscriptions->IsEmpty())
+    if (!subscriptions || subscriptions->IsEmpty())
       return;
 
     // Create PermissionType -> PermissionStatus map
