@@ -95,11 +95,15 @@ class ElectronPermissionManager::PendingRequest {
     }
   }
 
+  // When querying the status of permissions in the renderer, a PermissionStatus
+  // instance is returned which accepts 'onchange' listeners. Once the
+  // permissions request has completed, inform the change listeners.
   void NotifyChangeListeners(
       content::PermissionController::SubscriptionsMap* subscriptions) {
     if (subscriptions->IsEmpty())
       return;
 
+    // Create PermissionType -> PermissionStatus map
     base::flat_map<blink::PermissionType, blink::mojom::PermissionStatus>
         permission_map;
     for (size_t i = 0; i < permissions_.size(); ++i) {
@@ -108,6 +112,7 @@ class ElectronPermissionManager::PendingRequest {
       permission_map[permission] = status;
     }
 
+    // Gather callbacks from list of permission onchange subscriptions
     std::vector<base::OnceClosure> callbacks;
     for (content::PermissionController::SubscriptionsMap::iterator iter(
              subscriptions);
@@ -118,6 +123,7 @@ class ElectronPermissionManager::PendingRequest {
         continue;
       }
 
+      // Filter out subscriptions for unrelated permission types
       auto it = permission_map.find(subscription->permission);
       if (it == permission_map.end()) {
         continue;
@@ -131,6 +137,7 @@ class ElectronPermissionManager::PendingRequest {
                                          /*ignore_status_override=*/false));
     }
 
+    // Notify all onchange handlers
     for (auto& callback : callbacks)
       std::move(callback).Run();
   }
