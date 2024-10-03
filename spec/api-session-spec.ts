@@ -1411,7 +1411,7 @@ describe('session module', () => {
         w.loadURL('https://myfakesite');
 
         const [, name] = await result;
-        expect(name).to.deep.equal('SecurityError');
+        expect(name).to.deep.equal('NotAllowedError');
       });
 
       it('cancels any requests when resolved with invalid status', async () => {
@@ -1448,7 +1448,7 @@ describe('session module', () => {
         w.loadURL('https://myfakesite');
 
         const [, name] = await result;
-        expect(name).to.deep.equal('SecurityError');
+        expect(name).to.deep.equal('NotAllowedError');
       });
 
       it('successfully resolves when calling legacy getUserMedia', async () => {
@@ -1812,7 +1812,7 @@ describe('session module', () => {
   /** @deprecated see session.setPermissionHandlers */
   describe('ses.setPermissionCheckHandler(handler)', () => {
     afterEach(closeAllWindows);
-    it.skip('details provides requestingURL for mainFrame', async () => {
+    it('details provides requestingURL for mainFrame', async () => {
       const w = new BrowserWindow({
         show: false,
         webPreferences: {
@@ -1848,7 +1848,7 @@ describe('session module', () => {
       expect(handlerDetails!.requestingUrl).to.equal(loadUrl);
     });
 
-    it.skip('details provides requestingURL for cross origin subFrame', async () => {
+    it('details provides requestingURL for cross origin subFrame', async () => {
       const w = new BrowserWindow({
         show: false,
         webPreferences: {

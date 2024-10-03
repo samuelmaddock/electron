@@ -258,6 +258,7 @@ void ElectronPermissionManager::RequestPermissionsWithDetails(
   int request_id = pending_requests_.Add(std::make_unique<PendingRequest>(
       render_frame_host, permissions, std::move(response_callback)));
 
+  // Deprecated with setPermissionCheckHandler
   details.Set("requestingUrl", render_frame_host->GetLastCommittedURL().spec());
   details.Set("isMainFrame", render_frame_host->GetParent() == nullptr);
   base::Value dict_value(std::move(details));
@@ -374,6 +375,9 @@ ElectronPermissionManager::CheckPermissionWithDetailsAndFrame(
     const url::Origin& effective_origin,
     content::RenderFrameHost* requesting_frame,
     base::Value::Dict details) const {
+  // Deprecated with setPermissionCheckHandler
+  details.Set("requestingUrl", requesting_frame->GetLastCommittedURL().spec());
+
   details.Set("isMainFrame", requesting_frame->GetParent() == nullptr);
   details.Set("embeddingOrigin",
               content::PermissionUtil::GetLastCommittedOriginAsURL(

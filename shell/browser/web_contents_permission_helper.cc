@@ -308,7 +308,7 @@ bool WebContentsPermissionHelper::CheckMediaAccessPermission(
     const url::Origin& security_origin,
     blink::mojom::MediaStreamType type) const {
   base::Value::Dict details;
-  // Deprecated
+  // Deprecated with setPermissionCheckHandler
   details.Set("securityOrigin", security_origin.GetURL().spec());
   details.Set("mediaType", MediaStreamTypeToString(type));
   auto blink_type = type == blink::mojom::MediaStreamType::DEVICE_AUDIO_CAPTURE
