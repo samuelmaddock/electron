@@ -1489,6 +1489,33 @@ describe('session module', () => {
           }, x => resolve({ok: x instanceof MediaStream}), e => reject({ok: false, message: e.message})))
         `)).to.eventually.be.rejectedWith('Permission denied');
       });
+
+      it('notifies onchange listeners upon completed request', async () => {
+        const ses = session.fromPartition('' + Math.random());
+        ses.setPermissionHandlers(
+          {
+            onRequest: async () => ({ status: 'granted' }),
+            isGranted: () => ({ status: 'ask' })
+          }
+        );
+
+        const w = new BrowserWindow({ show: false, webPreferences: { session: ses } });
+        await w.loadURL(serverUrl);
+        await expect(w.webContents.executeJavaScript(`
+          new Promise((resolve, reject) => {
+            // 1. Query permission
+            navigator.permissions.query({ name: 'midi', sysex: true })
+              .then((permissionStatus) => {
+                // 2. Add onchange listener
+                permissionStatus.addEventListener('change', () => {
+                  resolve(permissionStatus.state);
+                });
+                // 3. Request permission
+                navigator.requestMIDIAccess({ sysex: true }).catch(err => reject(err.message));
+              }).catch(err => reject(err.message));
+          });
+        `, true)).to.eventually.equal('granted');
+      });
     });
 
     describe('isGranted', () => {
