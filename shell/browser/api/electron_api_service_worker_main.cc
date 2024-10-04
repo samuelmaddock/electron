@@ -136,7 +136,7 @@ void ServiceWorkerMain::Send(v8::Isolate* isolate,
   }
 
   auto* renderer_api_remote = GetRendererApi();
-  if (renderer_api_remote) {
+  if (!renderer_api_remote) {
     return;
   }
 
