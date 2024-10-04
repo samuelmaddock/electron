@@ -517,8 +517,8 @@ void RendererClientBase::WillEvaluateServiceWorkerOnWorkerThread(
     const GURL& script_url,
     const blink::ServiceWorkerToken& service_worker_token) {
   if (!service_worker_data) {
-    service_worker_data =
-        new ServiceWorkerData(context_proxy, service_worker_version_id);
+    service_worker_data = new ServiceWorkerData(
+        context_proxy, service_worker_version_id, v8_context);
   }
 
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)

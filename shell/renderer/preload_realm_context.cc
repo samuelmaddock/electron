@@ -99,6 +99,7 @@ double Uptime() {
 // of a ShadowRealmGlobalScope and its ScriptState. When the initiator
 // ExecutionContext is destroyed, the ShadowRealmGlobalScope is destroyed,
 // too.
+// TODO(samuelmaddock): change to PreloadRealmLifetimeController
 class ShadowRealmLifetimeController
     : public blink::GarbageCollected<ShadowRealmLifetimeController>,
       public blink::ContextLifecycleObserver {
@@ -135,6 +136,7 @@ class ShadowRealmLifetimeController
     // LOG(INFO) << base::debug::StackTrace();
   }
 
+  // TODO(samuelmaddock): lookup via service_worker_version_id instead?
   static ShadowRealmLifetimeController* From(v8::Local<v8::Context> context) {
     if (context->GetNumberOfEmbedderDataFields() <=
         kElectronContextEmbedderDataIndex) {
