@@ -71,6 +71,10 @@ declare namespace Electron {
     _fromVersionIDIfExists(versionId: number): Electron.ServiceWorkerMain | null;
   }
 
+  interface ServiceWorkerMain {
+    _send(internal: boolean, channel: string, args: any): void;
+  }
+
   interface Session {
     _init(): void;
   }

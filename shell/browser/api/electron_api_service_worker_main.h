@@ -15,6 +15,8 @@
 #include "content/public/browser/global_routing_id.h"
 #include "content/public/browser/service_worker_context.h"
 #include "gin/wrappable.h"
+#include "mojo/public/cpp/bindings/associated_receiver.h"
+#include "mojo/public/cpp/bindings/associated_remote.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "shell/browser/event_emitter_mixin.h"
@@ -67,10 +69,11 @@ class ServiceWorkerMain final
   ~ServiceWorkerMain() override;
 
  private:
-  const mojo::Remote<mojom::ElectronRenderer>& GetRendererApi();
-  void MaybeSetupMojoConnection();
-  void TeardownMojoConnection();
-  void OnRendererConnectionError();
+  mojom::ElectronRenderer* GetRendererApi();
+  // const mojo::Remote<mojom::ElectronRenderer>& GetRendererApi();
+  // void MaybeSetupMojoConnection();
+  // void TeardownMojoConnection();
+  // void OnRendererConnectionError();
 
   void Send(v8::Isolate* isolate,
             bool internal,
@@ -96,8 +99,10 @@ class ServiceWorkerMain final
 
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
 
-  mojo::Remote<mojom::ElectronRenderer> renderer_api_;
-  mojo::PendingReceiver<mojom::ElectronRenderer> pending_receiver_;
+  // mojo::Remote<mojom::ElectronRenderer> renderer_api_;
+  // mojo::PendingReceiver<mojom::ElectronRenderer> pending_receiver_;
+
+  mojo::AssociatedRemote<mojom::ElectronRenderer> remote_;
 
   base::WeakPtrFactory<ServiceWorkerMain> weak_factory_{this};
 };
