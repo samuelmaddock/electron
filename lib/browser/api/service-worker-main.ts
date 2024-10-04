@@ -10,4 +10,16 @@ Object.defineProperty(ServiceWorkerMain.prototype, 'ipc', {
   }
 });
 
+ServiceWorkerMain.prototype.send = function (channel, ...args) {
+  if (typeof channel !== 'string') {
+    throw new TypeError('Missing required channel argument');
+  }
+
+  try {
+    return this._send(false /* internal */, channel, args);
+  } catch (e) {
+    console.error('Error sending from ServiceWorkerMain: ', e);
+  }
+};
+
 module.exports = ServiceWorkerMain;

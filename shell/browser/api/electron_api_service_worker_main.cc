@@ -68,48 +68,61 @@ ServiceWorkerMain::~ServiceWorkerMain() {
   OnDestroyed();
 }
 
-const mojo::Remote<mojom::ElectronRenderer>&
-ServiceWorkerMain::GetRendererApi() {
-  MaybeSetupMojoConnection();
-  return renderer_api_;
-}
+// const mojo::Remote<mojom::ElectronRenderer>&
+// ServiceWorkerMain::GetRendererApi() {
+//   MaybeSetupMojoConnection();
+//   return renderer_api_;
+// }
 
-void ServiceWorkerMain::MaybeSetupMojoConnection() {
-  if (version_destroyed_) {
-    // RFH may not be set yet if called between when a new RFH is created and
-    // before it's been swapped with an old RFH.
-    LOG(INFO)
-        << "Attempt to setup ServiceWorkerMain connection while render frame "
-           "is disposed";
-    return;
-  }
+mojom::ElectronRenderer* ServiceWorkerMain::GetRendererApi() {
+  if (!remote_.is_bound()) {
+    if (!service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
+      return nullptr;
+    }
 
-  if (!renderer_api_) {
-    pending_receiver_ = renderer_api_.BindNewPipeAndPassReceiver();
-    renderer_api_.set_disconnect_handler(
-        base::BindOnce(&ServiceWorkerMain::OnRendererConnectionError,
-                       weak_factory_.GetWeakPtr()));
-  }
-
-  // Wait for RenderFrame to be created in renderer before accessing remote.
-  if (pending_receiver_ &&
-      service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
-    // TODO: get the interface
     service_worker_context_->GetRemoteAssociatedInterfaces(version_id_)
         .GetInterface(&remote_);
-    // render_frame_->GetRemoteInterfaces()->GetInterface(
-    //     std::move(pending_receiver_));
   }
+  return remote_.get();
 }
 
-void ServiceWorkerMain::TeardownMojoConnection() {
-  renderer_api_.reset();
-  pending_receiver_.reset();
-}
+// void ServiceWorkerMain::MaybeSetupMojoConnection() {
+//   if (version_destroyed_) {
+//     // RFH may not be set yet if called between when a new RFH is created and
+//     // before it's been swapped with an old RFH.
+//     LOG(INFO)
+//         << "Attempt to setup ServiceWorkerMain connection while render frame
+//         "
+//            "is disposed";
+//     return;
+//   }
 
-void ServiceWorkerMain::OnRendererConnectionError() {
-  TeardownMojoConnection();
-}
+//   if (!renderer_api_) {
+//     pending_receiver_ = renderer_api_.BindNewPipeAndPassReceiver();
+//     renderer_api_.set_disconnect_handler(
+//         base::BindOnce(&ServiceWorkerMain::OnRendererConnectionError,
+//                        weak_factory_.GetWeakPtr()));
+//   }
+
+//   // Wait for RenderFrame to be created in renderer before accessing remote.
+//   if (pending_receiver_ &&
+//       service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
+//     // TODO: get the interface
+//     service_worker_context_->GetRemoteAssociatedInterfaces(version_id_)
+//         .GetInterface(&remote_);
+//     // render_frame_->GetRemoteInterfaces()->GetInterface(
+//     //     std::move(pending_receiver_));
+//   }
+// }
+
+// void ServiceWorkerMain::TeardownMojoConnection() {
+//   renderer_api_.reset();
+//   pending_receiver_.reset();
+// }
+
+// void ServiceWorkerMain::OnRendererConnectionError() {
+//   TeardownMojoConnection();
+// }
 
 void ServiceWorkerMain::Send(v8::Isolate* isolate,
                              bool internal,
@@ -122,7 +135,12 @@ void ServiceWorkerMain::Send(v8::Isolate* isolate,
     return;
   }
 
-  GetRendererApi()->Message(internal, channel, std::move(message));
+  auto* renderer_api_remote = GetRendererApi();
+  if (renderer_api_remote) {
+    return;
+  }
+
+  renderer_api_remote->Message(internal, channel, std::move(message));
 }
 
 void ServiceWorkerMain::InvalidateState() {
@@ -215,6 +233,7 @@ void ServiceWorkerMain::FillObjectTemplate(
     v8::Isolate* isolate,
     v8::Local<v8::ObjectTemplate> templ) {
   gin_helper::ObjectTemplateBuilder(isolate, templ)
+      .SetMethod("_send", &ServiceWorkerMain::Send)
       .SetMethod("isDestroyed", &ServiceWorkerMain::IsDestroyed)
       .SetProperty("versionId", &ServiceWorkerMain::VersionID)
       .SetProperty("scope", &ServiceWorkerMain::ScopeURL)
