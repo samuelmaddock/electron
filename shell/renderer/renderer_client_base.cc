@@ -36,6 +36,7 @@
 #include "shell/renderer/content_settings_observer.h"
 #include "shell/renderer/electron_api_service_impl.h"
 #include "shell/renderer/electron_autofill_agent.h"
+#include "shell/renderer/service_worker_data.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_provider.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_registry.h"
 #include "third_party/blink/public/common/web_preferences/web_preferences.h"
@@ -106,6 +107,8 @@ namespace electron {
 content::RenderFrame* GetRenderFrame(v8::Local<v8::Object> value);
 
 namespace {
+
+constinit thread_local ServiceWorkerData* service_worker_data = nullptr;
 
 void SetIsWebView(v8::Isolate* isolate, v8::Local<v8::Object> object) {
   gin_helper::Dictionary dict(isolate, object);
@@ -513,6 +516,11 @@ void RendererClientBase::WillEvaluateServiceWorkerOnWorkerThread(
     const GURL& service_worker_scope,
     const GURL& script_url,
     const blink::ServiceWorkerToken& service_worker_token) {
+  if (!service_worker_data) {
+    service_worker_data =
+        new ServiceWorkerData(context_proxy, service_worker_version_id);
+  }
+
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
   extensions_renderer_client_->dispatcher()
       ->WillEvaluateServiceWorkerOnWorkerThread(
@@ -537,6 +545,13 @@ void RendererClientBase::WillDestroyServiceWorkerContextOnWorkerThread(
     int64_t service_worker_version_id,
     const GURL& service_worker_scope,
     const GURL& script_url) {
+  if (service_worker_data) {
+    DCHECK_EQ(service_worker_version_id,
+              service_worker_data->service_worker_version_id());
+    delete service_worker_data;
+    service_worker_data = nullptr;
+  }
+
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
   extensions_renderer_client_->dispatcher()
       ->WillDestroyServiceWorkerContextOnWorkerThread(
