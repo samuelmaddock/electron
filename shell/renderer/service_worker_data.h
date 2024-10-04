@@ -7,6 +7,7 @@
 
 #include <string>
 
+#include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "electron/shell/common/api/api.mojom.h"
 #include "mojo/public/cpp/bindings/associated_receiver.h"
@@ -14,6 +15,8 @@
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/receiver.h"
 #include "third_party/blink/public/web/modules/service_worker/web_service_worker_context_proxy.h"
+#include "v8/include/v8-context.h"
+#include "v8/include/v8-forward.h"
 
 namespace electron {
 
@@ -21,7 +24,8 @@ namespace electron {
 class ServiceWorkerData : public mojom::ElectronRenderer {
  public:
   ServiceWorkerData(blink::WebServiceWorkerContextProxy* proxy,
-                    int64_t service_worker_version_id);
+                    int64_t service_worker_version_id,
+                    const v8::Local<v8::Context>& v8_context);
   ~ServiceWorkerData() override;
 
   // disable copy
@@ -47,6 +51,9 @@ class ServiceWorkerData : public mojom::ElectronRenderer {
 
   raw_ptr<blink::WebServiceWorkerContextProxy> proxy_;
   const int64_t service_worker_version_id_;
+
+  // The v8 context the bindings are accessible to.
+  v8::Global<v8::Context> v8_context_;
 
   // mojo::PendingReceiver<mojom::ElectronRenderer> pending_receiver_;
   mojo::AssociatedReceiver<mojom::ElectronRenderer> receiver_{this};
