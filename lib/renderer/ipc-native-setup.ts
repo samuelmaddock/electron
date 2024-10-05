@@ -3,14 +3,9 @@ import { ipcRendererInternal } from '@electron/internal/renderer/ipc-renderer-in
 
 const v8Util = process._linkedBinding('electron_common_v8_util');
 
-console.log('***ipc-native-setup', JSON.stringify({
-  processType: process.type,
-  global: typeof global
-}));
-
 // ElectronApiServiceImpl will look for the "ipcNative" hidden object when
 // invoking the 'onMessage' callback.
-v8Util.setHiddenValue(global, 'ipcNative', {
+v8Util.setHiddenValue(globalThis, 'ipcNative', {
   onMessage (internal: boolean, channel: string, ports: MessagePort[], args: any[]) {
     const sender = internal ? ipcRendererInternal : ipcRenderer;
     sender.emit(channel, { sender, ports }, ...args);

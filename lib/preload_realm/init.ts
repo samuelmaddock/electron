@@ -27,8 +27,6 @@ for (const prop of Object.keys(EventEmitter.prototype) as (keyof typeof process)
 }
 Object.setPrototypeOf(process, EventEmitter.prototype);
 
-require('@electron/internal/renderer/ipc-native-setup');
-
 const ipcRendererUtils = require('@electron/internal/renderer/ipc-renderer-internal-utils') as typeof ipcRendererUtilsModule;
 
 const {
@@ -62,6 +60,8 @@ Object.assign(preloadProcess, processProps);
 
 Object.assign(process, binding.process);
 Object.assign(process, processProps);
+
+require('@electron/internal/renderer/ipc-native-setup');
 
 executeSandboxedPreloadScripts({
   loadedModules: loadedModules,
