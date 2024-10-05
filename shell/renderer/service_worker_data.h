@@ -53,6 +53,7 @@ class ServiceWorkerData : public mojom::ElectronRenderer {
   const int64_t service_worker_version_id_;
 
   // The v8 context the bindings are accessible to.
+  raw_ptr<v8::Isolate> isolate_;
   v8::Global<v8::Context> v8_context_;
 
   // mojo::PendingReceiver<mojom::ElectronRenderer> pending_receiver_;

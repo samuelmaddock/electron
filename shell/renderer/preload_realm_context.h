@@ -13,11 +13,20 @@ class WebServiceWorkerContextProxy;
 
 namespace electron::preload_realm {
 
+// TODO(samuelmaddock): refactor these to return preload realm controller
+
+// Get initiator context given the preload context.
 v8::MaybeLocal<v8::Context> GetInitiatorContext(v8::Local<v8::Context> context);
 
+// Get the preload context given the initiator context.
+v8::MaybeLocal<v8::Context> GetPreloadRealmContext(
+    v8::Local<v8::Context> context);
+
+// Get service worker proxy given the preload realm context.
 blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy(
     v8::Local<v8::Context> context);
 
+// Create
 v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
     v8::Local<v8::Context> initiator_context,
     blink::WebServiceWorkerContextProxy* proxy);

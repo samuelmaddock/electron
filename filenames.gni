@@ -714,6 +714,8 @@ filenames = {
     "shell/renderer/electron_api_service_impl.h",
     "shell/renderer/electron_autofill_agent.cc",
     "shell/renderer/electron_autofill_agent.h",
+    "shell/renderer/electron_ipc_native.cc",
+    "shell/renderer/electron_ipc_native.h",
     "shell/renderer/electron_render_frame_observer.cc",
     "shell/renderer/electron_render_frame_observer.h",
     "shell/renderer/electron_renderer_client.cc",

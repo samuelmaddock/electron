@@ -27,6 +27,8 @@ for (const prop of Object.keys(EventEmitter.prototype) as (keyof typeof process)
 }
 Object.setPrototypeOf(process, EventEmitter.prototype);
 
+require('@electron/internal/renderer/ipc-native-setup');
+
 const ipcRendererUtils = require('@electron/internal/renderer/ipc-renderer-internal-utils') as typeof ipcRendererUtilsModule;
 
 const {
