@@ -122,6 +122,8 @@ class ShadowRealmLifetimeController
     SetContextLifecycleNotifier(initiator_execution_context);
     RegisterDebugger(initiator_execution_context);
 
+    initiator_context()->SetAlignedPointerInEmbedderData(
+        kElectronContextEmbedderDataIndex, static_cast<void*>(this));
     realm_context()->SetAlignedPointerInEmbedderData(
         kElectronContextEmbedderDataIndex, static_cast<void*>(this));
 
@@ -155,6 +157,12 @@ class ShadowRealmLifetimeController
     visitor->Trace(shadow_realm_global_scope_);
     visitor->Trace(shadow_realm_script_state_);
     ContextLifecycleObserver::Trace(visitor);
+  }
+
+  v8::MaybeLocal<v8::Context> GetContext() {
+    return shadow_realm_script_state_->ContextIsValid()
+               ? shadow_realm_script_state_->GetContext()
+               : v8::MaybeLocal<v8::Context>();
   }
 
   v8::MaybeLocal<v8::Context> GetInitiatorContext() {
@@ -193,6 +201,9 @@ class ShadowRealmLifetimeController
   }
   v8::Local<v8::Context> realm_context() {
     return shadow_realm_script_state_->GetContext();
+  }
+  v8::Local<v8::Context> initiator_context() {
+    return initiator_script_state_->GetContext();
   }
 
   void RegisterDebugger(blink::ExecutionContext* initiator_execution_context) {
@@ -289,6 +300,19 @@ v8::MaybeLocal<v8::Context> GetInitiatorContext(
   auto* controller = ShadowRealmLifetimeController::From(context);
   if (controller)
     return controller->GetInitiatorContext();
+  return v8::MaybeLocal<v8::Context>();
+}
+
+v8::MaybeLocal<v8::Context> GetPreloadRealmContext(
+    v8::Local<v8::Context> context) {
+  DCHECK(!context.IsEmpty());
+  blink::ExecutionContext* execution_context =
+      blink::ExecutionContext::From(context);
+  if (!execution_context->IsServiceWorkerGlobalScope())
+    return v8::MaybeLocal<v8::Context>();
+  auto* controller = ShadowRealmLifetimeController::From(context);
+  if (controller)
+    return controller->GetContext();
   return v8::MaybeLocal<v8::Context>();
 }
 
