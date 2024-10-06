@@ -28,6 +28,10 @@ Sending Functions, Promises, Symbols, WeakMaps, or WeakSets will throw an except
 The renderer process can handle the message by listening to `channel` with the
 [`ipcRenderer`](ipc-renderer.md) module.
 
+#### `worker.startWorker()`
+
+Returns `Promise<void>` - Whether the service worker started.
+
 ### Instance Properties
 
 #### `worker.ipc` _Readonly_

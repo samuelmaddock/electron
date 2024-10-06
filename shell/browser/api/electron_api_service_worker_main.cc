@@ -68,12 +68,6 @@ ServiceWorkerMain::~ServiceWorkerMain() {
   OnDestroyed();
 }
 
-// const mojo::Remote<mojom::ElectronRenderer>&
-// ServiceWorkerMain::GetRendererApi() {
-//   MaybeSetupMojoConnection();
-//   return renderer_api_;
-// }
-
 mojom::ElectronRenderer* ServiceWorkerMain::GetRendererApi() {
   if (!remote_.is_bound()) {
     if (!service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
@@ -86,44 +80,6 @@ mojom::ElectronRenderer* ServiceWorkerMain::GetRendererApi() {
   return remote_.get();
 }
 
-// void ServiceWorkerMain::MaybeSetupMojoConnection() {
-//   if (version_destroyed_) {
-//     // RFH may not be set yet if called between when a new RFH is created and
-//     // before it's been swapped with an old RFH.
-//     LOG(INFO)
-//         << "Attempt to setup ServiceWorkerMain connection while render frame
-//         "
-//            "is disposed";
-//     return;
-//   }
-
-//   if (!renderer_api_) {
-//     pending_receiver_ = renderer_api_.BindNewPipeAndPassReceiver();
-//     renderer_api_.set_disconnect_handler(
-//         base::BindOnce(&ServiceWorkerMain::OnRendererConnectionError,
-//                        weak_factory_.GetWeakPtr()));
-//   }
-
-//   // Wait for RenderFrame to be created in renderer before accessing remote.
-//   if (pending_receiver_ &&
-//       service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
-//     // TODO: get the interface
-//     service_worker_context_->GetRemoteAssociatedInterfaces(version_id_)
-//         .GetInterface(&remote_);
-//     // render_frame_->GetRemoteInterfaces()->GetInterface(
-//     //     std::move(pending_receiver_));
-//   }
-// }
-
-// void ServiceWorkerMain::TeardownMojoConnection() {
-//   renderer_api_.reset();
-//   pending_receiver_.reset();
-// }
-
-// void ServiceWorkerMain::OnRendererConnectionError() {
-//   TeardownMojoConnection();
-// }
-
 void ServiceWorkerMain::Send(v8::Isolate* isolate,
                              bool internal,
                              const std::string& channel,
@@ -133,6 +89,16 @@ void ServiceWorkerMain::Send(v8::Isolate* isolate,
     isolate->ThrowException(v8::Exception::Error(
         gin::StringToV8(isolate, "Failed to serialize arguments")));
     return;
+  }
+
+  auto* wrapper = static_cast<content::ServiceWorkerContextWrapper*>(
+      service_worker_context_);
+  content::ServiceWorkerVersion* version = wrapper->GetLiveVersion(version_id_);
+  if (version) {
+    LOG(INFO) << "***ServiceWorkerMain::Send exists";
+  }
+  if (service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
+    LOG(INFO) << "***ServiceWorkerMain::Send IsLiveRunningServiceWorker";
   }
 
   auto* renderer_api_remote = GetRendererApi();
@@ -194,6 +160,45 @@ bool ServiceWorkerMain::IsDestroyed() const {
   return version_destroyed_;
 }
 
+v8::Local<v8::Promise> ServiceWorkerMain::StartWorker(v8::Isolate* isolate) {
+  // Call ServiceWorkerContext::StartWorkerForScope
+  // Create
+
+  gin_helper::Promise<void> promise(isolate);
+  v8::Local<v8::Promise> handle = promise.GetHandle();
+
+  auto* info = GetRunningInfo();
+  DCHECK(info);
+  GURL scope = info->scope;
+
+  service_worker_context_->StartWorkerForScope(
+      scope, blink::StorageKey::CreateFirstParty(url::Origin::Create(scope)),
+      base::BindOnce(&ServiceWorkerMain::DidStartWorkerForScope,
+                     weak_factory_.GetWeakPtr(), std::move(promise),
+                     base::Time::Now()),
+      base::BindOnce(&ServiceWorkerMain::DidStartWorkerFail,
+                     weak_factory_.GetWeakPtr(), std::move(promise),
+                     base::Time::Now()));
+
+  return handle;
+}
+
+void ServiceWorkerMain::DidStartWorkerForScope(
+    gin_helper::Promise<void> promise,
+    base::Time start_time,
+    int64_t version_id,
+    int process_id,
+    int thread_id) {
+  promise.Resolve();
+}
+
+void ServiceWorkerMain::DidStartWorkerFail(
+    gin_helper::Promise<void> promise,
+    base::Time start_time,
+    blink::ServiceWorkerStatusCode status_code) {
+  promise.RejectWithErrorMessage("Failed to start service worker.");
+}
+
 int64_t ServiceWorkerMain::VersionID() const {
   return version_id_;
 }
@@ -235,6 +240,7 @@ void ServiceWorkerMain::FillObjectTemplate(
   gin_helper::ObjectTemplateBuilder(isolate, templ)
       .SetMethod("_send", &ServiceWorkerMain::Send)
       .SetMethod("isDestroyed", &ServiceWorkerMain::IsDestroyed)
+      .SetMethod("startWorker", &ServiceWorkerMain::StartWorker)
       .SetProperty("versionId", &ServiceWorkerMain::VersionID)
       .SetProperty("scope", &ServiceWorkerMain::ScopeURL)
       .Build();

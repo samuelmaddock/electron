@@ -134,7 +134,7 @@ class ShadowRealmLifetimeController
   ~ShadowRealmLifetimeController() override {
     // DCHECK(shadow_realm_script_state_.IsSet());
     // TODO: why is this being called early?
-    LOG(INFO) << "*** ~ShadowRealmLifetimeController\n";
+    LOG(INFO) << "*** ~ShadowRealmLifetimeController destroyed\n";
     // LOG(INFO) << base::debug::StackTrace();
   }
 
