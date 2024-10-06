@@ -31,6 +31,7 @@ class Arguments;
 }  // namespace gin
 
 namespace gin_helper {
+class Dictionary;
 template <typename T>
 class Handle;
 template <typename T>
@@ -84,6 +85,10 @@ class ServiceWorkerMain final
   void DidStartWorkerFail(gin_helper::Promise<void> promise,
                           base::Time start_time,
                           blink::ServiceWorkerStatusCode status_code);
+
+  gin_helper::Dictionary StartExternalRequest(v8::Isolate* isolate,
+                                              bool has_timeout);
+  void FinishExternalRequest(v8::Isolate* isolate, std::string uuid);
 
   mojom::ElectronRenderer* GetRendererApi();
   // const mojo::Remote<mojom::ElectronRenderer>& GetRendererApi();

@@ -32,6 +32,14 @@ The renderer process can handle the message by listening to `channel` with the
 
 Returns `Promise<void>` - Whether the service worker started.
 
+#### `worker.startTask()`
+
+Increments internal task count to keep service worker alive until completed.
+
+Returns `Object`:
+
+* `complete` Function - Call when task has completed.
+
 ### Instance Properties
 
 #### `worker.ipc` _Readonly_

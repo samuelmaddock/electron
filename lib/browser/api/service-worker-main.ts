@@ -22,4 +22,26 @@ ServiceWorkerMain.prototype.send = function (channel, ...args) {
   }
 };
 
+ServiceWorkerMain.prototype.startTask = function () {
+  const hasTimeout = true;
+  const { id, ok } = this._startExternalRequest(hasTimeout);
+  if (!ok) {
+    throw new Error('Unable to start service worker request');
+  }
+
+  // TODO: Promise.withResolvers
+  let onResolve: Function;
+  const promise = new Promise<void>((resolve) => {
+    onResolve = resolve;
+  });
+
+  promise.finally(() => {
+    this._finishExternalRequest(id);
+  });
+
+  return {
+    complete () { onResolve(); }
+  };
+};
+
 module.exports = ServiceWorkerMain;
