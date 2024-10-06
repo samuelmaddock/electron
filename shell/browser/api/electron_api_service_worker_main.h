@@ -91,10 +91,6 @@ class ServiceWorkerMain final
   void FinishExternalRequest(v8::Isolate* isolate, std::string uuid);
 
   mojom::ElectronRenderer* GetRendererApi();
-  // const mojo::Remote<mojom::ElectronRenderer>& GetRendererApi();
-  // void MaybeSetupMojoConnection();
-  // void TeardownMojoConnection();
-  // void OnRendererConnectionError();
 
   void Send(v8::Isolate* isolate,
             bool internal,
@@ -119,9 +115,6 @@ class ServiceWorkerMain final
   std::unique_ptr<content::ServiceWorkerRunningInfo> running_info_;
 
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
-
-  // mojo::Remote<mojom::ElectronRenderer> renderer_api_;
-  // mojo::PendingReceiver<mojom::ElectronRenderer> pending_receiver_;
 
   mojo::AssociatedRemote<mojom::ElectronRenderer> remote_;
 

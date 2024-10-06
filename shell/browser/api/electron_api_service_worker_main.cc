@@ -103,6 +103,7 @@ void ServiceWorkerMain::Send(v8::Isolate* isolate,
 
   auto* renderer_api_remote = GetRendererApi();
   if (!renderer_api_remote) {
+    LOG(INFO) << "***ServiceWorkerMain::Send remote is not bound";
     return;
   }
 
