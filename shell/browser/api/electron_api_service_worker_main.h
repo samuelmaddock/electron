@@ -67,6 +67,8 @@ class ServiceWorkerMain final
   ServiceWorkerMain(const ServiceWorkerMain&) = delete;
   ServiceWorkerMain& operator=(const ServiceWorkerMain&) = delete;
 
+  void OnVersionUpdated();
+
  protected:
   explicit ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
                              int64_t version_id);

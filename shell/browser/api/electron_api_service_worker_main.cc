@@ -156,6 +156,13 @@ void ServiceWorkerMain::OnDestroyed() {
   Unpin();
 }
 
+void ServiceWorkerMain::OnVersionUpdated() {
+  if (!service_worker_context_->IsLiveStartingServiceWorker(version_id_) &&
+      !service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
+    remote_.reset();
+  }
+}
+
 bool ServiceWorkerMain::IsDestroyed() const {
   return version_destroyed_;
 }
