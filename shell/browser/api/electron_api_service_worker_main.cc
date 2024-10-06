@@ -206,6 +206,38 @@ void ServiceWorkerMain::DidStartWorkerFail(
   promise.RejectWithErrorMessage("Failed to start service worker.");
 }
 
+gin_helper::Dictionary ServiceWorkerMain::StartExternalRequest(
+    v8::Isolate* isolate,
+    bool has_timeout) {
+  auto request_uuid = base::Uuid::GenerateRandomV4();
+  auto timeout_type =
+      has_timeout
+          ? content::ServiceWorkerExternalRequestTimeoutType::kDefault
+          : content::ServiceWorkerExternalRequestTimeoutType::kDoesNotTimeout;
+
+  content::ServiceWorkerExternalRequestResult start_result =
+      service_worker_context_->StartingExternalRequest(
+          version_id_, timeout_type, request_uuid);
+
+  auto details = gin_helper::Dictionary::CreateEmpty(isolate);
+  details.Set("id", request_uuid.AsLowercaseString());
+  details.Set("ok",
+              start_result == content::ServiceWorkerExternalRequestResult::kOk);
+
+  return details;
+}
+
+void ServiceWorkerMain::FinishExternalRequest(v8::Isolate* isolate,
+                                              std::string uuid) {
+  base::Uuid request_uuid = base::Uuid::ParseLowercase(uuid);
+  if (!request_uuid.is_valid()) {
+    // TODO: throw
+  }
+
+  // content::ServiceWorkerExternalRequestResult finish_result =
+  service_worker_context_->FinishedExternalRequest(version_id_, request_uuid);
+}
+
 int64_t ServiceWorkerMain::VersionID() const {
   return version_id_;
 }
@@ -248,6 +280,10 @@ void ServiceWorkerMain::FillObjectTemplate(
       .SetMethod("_send", &ServiceWorkerMain::Send)
       .SetMethod("isDestroyed", &ServiceWorkerMain::IsDestroyed)
       .SetMethod("startWorker", &ServiceWorkerMain::StartWorker)
+      .SetMethod("_startExternalRequest",
+                 &ServiceWorkerMain::StartExternalRequest)
+      .SetMethod("_finishExternalRequest",
+                 &ServiceWorkerMain::FinishExternalRequest)
       .SetProperty("versionId", &ServiceWorkerMain::VersionID)
       .SetProperty("scope", &ServiceWorkerMain::ScopeURL)
       .Build();
