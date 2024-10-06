@@ -28,10 +28,14 @@ class GURL;
 
 namespace gin {
 class Arguments;
+}  // namespace gin
 
+namespace gin_helper {
 template <typename T>
 class Handle;
-}  // namespace gin
+template <typename T>
+class Promise;
+}  // namespace gin_helper
 
 namespace electron::api {
 
@@ -69,6 +73,16 @@ class ServiceWorkerMain final
   ~ServiceWorkerMain() override;
 
  private:
+  v8::Local<v8::Promise> StartWorker(v8::Isolate* isolate);
+  void DidStartWorkerForScope(gin_helper::Promise<void> promise,
+                              base::Time start_time,
+                              int64_t version_id,
+                              int process_id,
+                              int thread_id);
+  void DidStartWorkerFail(gin_helper::Promise<void> promise,
+                          base::Time start_time,
+                          blink::ServiceWorkerStatusCode status_code);
+
   mojom::ElectronRenderer* GetRendererApi();
   // const mojo::Remote<mojom::ElectronRenderer>& GetRendererApi();
   // void MaybeSetupMojoConnection();
