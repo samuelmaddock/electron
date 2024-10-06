@@ -109,6 +109,10 @@ ServiceWorkerContext::~ServiceWorkerContext() {
 
 void ServiceWorkerContext::OnVersionUpdated(int64_t version_id,
                                             std::string& state) {
+  ServiceWorkerMain* worker = ServiceWorkerMain::FromVersionID(version_id);
+  if (worker)
+    worker->OnVersionUpdated();
+
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
   v8::HandleScope scope(isolate);
   EmitWithoutEvent("version-updated", gin::DataObjectBuilder(isolate)
