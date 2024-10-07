@@ -252,7 +252,7 @@ class ShadowRealmLifetimeController
     process.Set("argv", base::CommandLine::ForCurrentProcess()->argv());
     process.SetReadOnly("pid", base::GetCurrentProcId());
     process.SetReadOnly("sandboxed", true);
-    process.SetReadOnly("type", "preload_realm");
+    process.SetReadOnly("type", "service-worker");
     process.SetReadOnly("contextIsolated", true);
 
     std::vector<v8::Local<v8::String>> preload_realm_bundle_params = {
