@@ -38,8 +38,6 @@ void ServiceWorkerData::OnElectronRendererRequest(
 void ServiceWorkerData::Message(bool internal,
                                 const std::string& channel,
                                 blink::CloneableMessage arguments) {
-  LOG(INFO) << "***ServiceWorkerData::Message: " << channel;
-
   v8::Isolate* isolate = isolate_.get();
   v8::HandleScope handle_scope(isolate);
 
@@ -50,8 +48,6 @@ void ServiceWorkerData::Message(bool internal,
       preload_realm::GetPreloadRealmContext(context);
 
   if (maybe_preload_context.IsEmpty()) {
-    LOG(INFO)
-        << "***ServiceWorkerData::Message: Unable to find preload context";
     return;
   }
 

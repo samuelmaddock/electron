@@ -22,6 +22,8 @@ class ElectronBrowserContext;
 
 namespace api {
 
+class ServiceWorkerMain;
+
 class ServiceWorkerContext final
     : public gin::Wrappable<ServiceWorkerContext>,
       public gin_helper::EventEmitterMixin<ServiceWorkerContext>,
@@ -36,8 +38,8 @@ class ServiceWorkerContext final
                                            int64_t version_id);
   v8::Local<v8::Value> FromVersionID(gin_helper::ErrorThrower thrower,
                                      int64_t version_id);
-  v8::Local<v8::Value> FromVersionIDIfExists(gin_helper::ErrorThrower thrower,
-                                             int64_t version_id);
+  gin::Handle<ServiceWorkerMain> FromVersionIDIfExists(v8::Isolate* isolate,
+                                                       int64_t version_id);
 
   // content::ServiceWorkerContextObserver
   void OnReportConsoleMessage(int64_t version_id,
