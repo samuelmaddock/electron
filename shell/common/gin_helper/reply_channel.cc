@@ -17,8 +17,6 @@ namespace gin_helper::internal {
 using InvokeCallback = electron::mojom::ElectronApiIPC::InvokeCallback;
 gin::Handle<ReplyChannel> ReplyChannel::Create(v8::Isolate* isolate,
                                                InvokeCallback callback) {
-  LOG(INFO) << "***ReplyChannel::Create";
-  // LOG(INFO) << base::debug::StackTrace();
   return gin::CreateHandle(isolate, new ReplyChannel(std::move(callback)));
 }
 

@@ -33,7 +33,7 @@ const addReturnValueToEvent = (event: Electron.IpcMainEvent | Electron.IpcMainSe
 
 Session.prototype._init = function () {
   const getServiceWorkerFromEvent = (event: Electron.IpcMainServiceWorkerEvent | Electron.IpcMainServiceWorkerInvokeEvent): ServiceWorkerMain | null => {
-    return this.serviceWorkers._fromVersionIDIfExists(event.versionId); ;
+    return this.serviceWorkers._fromVersionIDIfExists(event.versionId);
   };
   const addServiceWorkerPropertyToEvent = (event: Electron.IpcMainServiceWorkerEvent | Electron.IpcMainServiceWorkerInvokeEvent) => {
     Object.defineProperty(event, 'serviceWorker', {

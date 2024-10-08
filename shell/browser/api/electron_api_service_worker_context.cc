@@ -224,13 +224,13 @@ v8::Local<v8::Value> ServiceWorkerContext::FromVersionID(
 }
 
 // static
-v8::Local<v8::Value> ServiceWorkerContext::FromVersionIDIfExists(
-    gin_helper::ErrorThrower thrower,
+gin::Handle<ServiceWorkerMain> ServiceWorkerContext::FromVersionIDIfExists(
+    v8::Isolate* isolate,
     int64_t version_id) {
   ServiceWorkerMain* worker = ServiceWorkerMain::FromVersionID(version_id);
   if (!worker)
-    return v8::Null(thrower.isolate());
-  return gin::CreateHandle(thrower.isolate(), worker).ToV8();
+    return gin::Handle<ServiceWorkerMain>();
+  return gin::CreateHandle(isolate, worker);
 }
 
 // static

@@ -91,19 +91,8 @@ void ServiceWorkerMain::Send(v8::Isolate* isolate,
     return;
   }
 
-  auto* wrapper = static_cast<content::ServiceWorkerContextWrapper*>(
-      service_worker_context_);
-  content::ServiceWorkerVersion* version = wrapper->GetLiveVersion(version_id_);
-  if (version) {
-    LOG(INFO) << "***ServiceWorkerMain::Send exists";
-  }
-  if (service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
-    LOG(INFO) << "***ServiceWorkerMain::Send IsLiveRunningServiceWorker";
-  }
-
   auto* renderer_api_remote = GetRendererApi();
   if (!renderer_api_remote) {
-    LOG(INFO) << "***ServiceWorkerMain::Send remote is not bound";
     return;
   }
 

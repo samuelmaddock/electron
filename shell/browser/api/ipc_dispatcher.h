@@ -28,7 +28,6 @@ class IpcDispatcher {
                const std::string& channel,
                blink::CloneableMessage args) {
     TRACE_EVENT1("electron", "IpcDispatcher::Message", "channel", channel);
-    LOG(INFO) << "***IpcDispatcher::Message" << channel;
     emitter()->EmitWithoutEvent("-ipc-message", event, channel, args);
   }
 
@@ -37,7 +36,6 @@ class IpcDispatcher {
               blink::CloneableMessage arguments,
               electron::mojom::ElectronApiIPC::InvokeCallback callback) {
     TRACE_EVENT1("electron", "IpcHelper::Invoke", "channel", channel);
-    LOG(INFO) << "***IpcDispatcher::Invoke" << channel;
 
     v8::Isolate* isolate = electron::JavascriptEnvironment::GetIsolate();
     gin_helper::Dictionary dict(isolate, event.ToV8().As<v8::Object>());
