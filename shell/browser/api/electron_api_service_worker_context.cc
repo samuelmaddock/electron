@@ -17,6 +17,7 @@
 #include "shell/browser/electron_browser_context.h"
 #include "shell/browser/javascript_environment.h"
 #include "shell/common/gin_converters/gurl_converter.h"
+#include "shell/common/gin_converters/service_worker_converter.h"
 #include "shell/common/gin_converters/value_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 
@@ -107,8 +108,9 @@ ServiceWorkerContext::~ServiceWorkerContext() {
   service_worker_context_->RemoveObserver(this);
 }
 
-void ServiceWorkerContext::OnVersionUpdated(int64_t version_id,
-                                            std::string& state) {
+void ServiceWorkerContext::OnVersionUpdated(
+    int64_t version_id,
+    blink::EmbeddedWorkerStatus running_status) {
   ServiceWorkerMain* worker = ServiceWorkerMain::FromVersionID(version_id);
   if (worker)
     worker->OnVersionUpdated();
@@ -117,7 +119,7 @@ void ServiceWorkerContext::OnVersionUpdated(int64_t version_id,
   v8::HandleScope scope(isolate);
   EmitWithoutEvent("version-updated", gin::DataObjectBuilder(isolate)
                                           .Set("versionId", version_id)
-                                          .Set("state", state)
+                                          .Set("runningStatus", running_status)
                                           .Build());
 }
 
@@ -145,36 +147,22 @@ void ServiceWorkerContext::OnRegistrationCompleted(const GURL& scope) {
        gin::DataObjectBuilder(isolate).Set("scope", scope).Build());
 }
 
-void ServiceWorkerContext::OnVersionActivated(int64_t version_id,
-                                              const GURL& scope) {
-  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
-  v8::HandleScope handle_scope(isolate);
-  EmitWithoutEvent("version-activated", gin::DataObjectBuilder(isolate)
-                                            .Set("versionId", version_id)
-                                            .Set("scope", scope)
-                                            .Build());
-}
-
 void ServiceWorkerContext::OnVersionStartingRunning(int64_t version_id) {
-  std::string state = "starting";
-  OnVersionUpdated(version_id, state);
+  OnVersionUpdated(version_id, blink::EmbeddedWorkerStatus::kStarting);
 }
 
 void ServiceWorkerContext::OnVersionStartedRunning(
     int64_t version_id,
     const content::ServiceWorkerRunningInfo& running_info) {
-  std::string state = "started";
-  OnVersionUpdated(version_id, state);
+  OnVersionUpdated(version_id, blink::EmbeddedWorkerStatus::kRunning);
 }
 
 void ServiceWorkerContext::OnVersionStoppingRunning(int64_t version_id) {
-  std::string state = "stopping";
-  OnVersionUpdated(version_id, state);
+  OnVersionUpdated(version_id, blink::EmbeddedWorkerStatus::kStopping);
 }
 
 void ServiceWorkerContext::OnVersionStoppedRunning(int64_t version_id) {
-  std::string state = "stopped";
-  OnVersionUpdated(version_id, state);
+  OnVersionUpdated(version_id, blink::EmbeddedWorkerStatus::kStopped);
 }
 
 void ServiceWorkerContext::OnDestruct(content::ServiceWorkerContext* context) {

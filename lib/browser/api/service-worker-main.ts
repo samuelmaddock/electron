@@ -23,16 +23,21 @@ ServiceWorkerMain.prototype.send = function (channel, ...args) {
 };
 
 ServiceWorkerMain.prototype.startTask = function () {
-  const hasTimeout = true;
+  // TODO(samuelmaddock): make timeout configurable
+  const hasTimeout = false;
   const { id, ok } = this._startExternalRequest(hasTimeout);
-  if (!ok) {
-    throw new Error('Unable to start service worker request');
-  }
 
-  // TODO: Promise.withResolvers
+  // TODO(samuelmaddock): refactor to use Promise.withResolvers after upgrading
+  // types.
   let onResolve: Function;
-  const promise = new Promise<void>((resolve) => {
+  let onReject: Function;
+  const promise = new Promise<void>((resolve, reject) => {
     onResolve = resolve;
+    onReject = reject;
+
+    if (!ok) {
+      onReject(new Error('Unable to start service worker task.'));
+    }
   });
 
   promise.finally(() => {

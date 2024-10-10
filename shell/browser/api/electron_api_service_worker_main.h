@@ -23,6 +23,7 @@
 #include "shell/common/api/api.mojom.h"
 #include "shell/common/gin_helper/constructible.h"
 #include "shell/common/gin_helper/pinnable.h"
+#include "third_party/blink/public/common/service_worker/embedded_worker_status.h"
 
 class GURL;
 

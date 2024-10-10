@@ -10,6 +10,7 @@
 #include "content/public/browser/service_worker_context_observer.h"
 #include "gin/wrappable.h"
 #include "shell/browser/event_emitter_mixin.h"
+#include "third_party/blink/public/common/service_worker/embedded_worker_status.h"
 
 namespace gin {
 template <typename T>
@@ -46,7 +47,6 @@ class ServiceWorkerContext final
                               const GURL& scope,
                               const content::ConsoleMessage& message) override;
   void OnRegistrationCompleted(const GURL& scope) override;
-  void OnVersionActivated(int64_t version_id, const GURL& scope) override;
   void OnVersionStartingRunning(int64_t version_id) override;
   void OnVersionStartedRunning(
       int64_t version_id,
@@ -71,7 +71,8 @@ class ServiceWorkerContext final
   ~ServiceWorkerContext() override;
 
  private:
-  void OnVersionUpdated(int64_t version_id, std::string& state);
+  void OnVersionUpdated(int64_t version_id,
+                        blink::EmbeddedWorkerStatus running_status);
 
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
 
