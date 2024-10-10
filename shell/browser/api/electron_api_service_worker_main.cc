@@ -158,9 +158,6 @@ bool ServiceWorkerMain::IsDestroyed() const {
 }
 
 v8::Local<v8::Promise> ServiceWorkerMain::StartWorker(v8::Isolate* isolate) {
-  // Call ServiceWorkerContext::StartWorkerForScope
-  // Create
-
   gin_helper::Promise<void> promise(isolate);
   v8::Local<v8::Promise> handle = promise.GetHandle();
 

@@ -56,14 +56,17 @@ Returns:
 
 Emitted when a service worker has been registered. Can occur after a call to [`navigator.serviceWorker.register('/sw.js')`](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register) successfully resolves or when a Chrome extension is loaded.
 
-#### Event: 'version-updated'
+#### Event: 'version-updated' _Experimental_
 
 Returns:
 
 * `event` Event
-  * `versionId` number - Service worker version ID.
-  * `state` string - Version state.
+  * `versionId` number - ID of the updated service worker version
+  * `runningStatus` string - Running status.
     Possible values include `starting`, `running`, `stopping`, or `stopped`.
+
+Emitted when a service worker version updates its running status. A version refers to a specific
+version of a Service Worker script for a given scope.
 
 ### Instance Methods
 
@@ -75,14 +78,14 @@ Returns `Record<number, ServiceWorkerInfo>` - A [ServiceWorkerInfo](structures/s
 
 #### `serviceWorkers.getFromVersionID(versionId)`
 
-* `versionId` number
+* `versionId` number - ID of the service worker version
 
 Returns [`ServiceWorkerInfo`](structures/service-worker-info.md) - Information about this service worker
 
 If the service worker does not exist or is not running this method will throw an exception.
 
-#### `serviceWorkers.fromVersionID(versionId)`
+#### `serviceWorkers.fromVersionID(versionId)` _Experimental_
 
-* `versionId` number
+* `versionId` number - ID of the service worker version
 
-Returns [`ServiceWorkerMain`](service-worker-main.md) | undefined - Service worker
+Returns [`ServiceWorkerMain`](service-worker-main.md) | undefined - Instance of the service worker associated with the given version ID.
