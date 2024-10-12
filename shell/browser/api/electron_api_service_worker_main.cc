@@ -34,6 +34,7 @@
 
 namespace electron::api {
 
+// TODO: version IDs aren't globally unique. need to pair with browser context
 // VersionId -> ServiceWorkerMain*
 typedef std::unordered_map<int64_t /* version_id */, ServiceWorkerMain*>
     VersionIdMap;
