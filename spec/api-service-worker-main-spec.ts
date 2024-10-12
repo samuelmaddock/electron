@@ -1,9 +1,12 @@
-import { once } from 'node:events';
+import { session, webContents as webContentsModule, WebContents } from 'electron/main';
+
+import { expect } from 'chai';
+
+import { once, on } from 'node:events';
 import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as path from 'node:path';
-import { session, webContents as webContentsModule, WebContents } from 'electron/main';
-import { expect } from 'chai';
+
 import { listen } from './lib/spec-helpers';
 
 const partition = 'service-worker-main-spec';
@@ -24,7 +27,7 @@ describe('ServiceWorkerMain module', () => {
     serviceWorkers.on('console-message', (_e, details) => {
       console.log(details.message);
     });
-    
+
     const uuid = crypto.randomUUID();
     server = http.createServer((req, res) => {
       const url = new URL(req.url!, `http://${req.headers.host}`);
@@ -66,24 +69,27 @@ describe('ServiceWorkerMain module', () => {
       const serviceWorker = serviceWorkers.fromVersionID(event.versionId);
       expect(serviceWorker).to.not.be.undefined();
       expect(serviceWorker).to.have.property('versionId').that.is.a('number');
+      if (!serviceWorker) return;
       expect(serviceWorker.versionId).to.equal(event.versionId);
       expect(serviceWorker.scope).to.equal(`${baseUrl}/`);
     });
 
-    it.only('test', async () => {
-      const statusUpdates = [];
-      serviceWorkers.on('version-updated', ({ runningStatus }) => {
-        statusUpdates.push(runningStatus);
-      });
-      const versionStopped = once(serviceWorkers, 'version-updated');
-      await wc.loadURL(`${baseUrl}/index.html?scriptUrl=sw-script-error.js`);
-      const [event] = await versionStarting;
-      expect(event.runningStatus).to.equal('stopped');
-      const versionStarted = once(serviceWorkers, 'version-updated');
-      await versionStarted;
-      
-      // const serviceWorker = serviceWorkers.fromVersionID(event.versionId);
-    })
+    it('should not crash on script error', async () => {
+      wc.loadURL(`${baseUrl}/index.html?scriptUrl=sw-script-error.js`);
+      let serviceWorker;
+      const actualStatuses = [];
+      for await (const [{ versionId, runningStatus }] of on(serviceWorkers, 'version-updated')) {
+        if (!serviceWorker) {
+          serviceWorker = serviceWorkers.fromVersionID(versionId);
+        }
+        actualStatuses.push(runningStatus);
+        if (runningStatus === 'stopping') {
+          break;
+        }
+      }
+      expect(actualStatuses).to.deep.equal(['starting', 'stopping']);
+      expect(serviceWorker).to.not.be.undefined();
+    });
   });
 
   describe('ipc', () => {
