@@ -60,7 +60,7 @@ Emitted when a service worker has been registered. Can occur after a call to [`n
 
 Returns:
 
-* `event` Event
+* `details` Event\<\>
   * `versionId` number - ID of the updated service worker version
   * `runningStatus` string - Running status.
     Possible values include `starting`, `running`, `stopping`, or `stopped`.

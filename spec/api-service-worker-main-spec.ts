@@ -18,18 +18,18 @@ describe('ServiceWorkerMain module', () => {
   let baseUrl: string;
   let wc: WebContents;
 
-  before(async () => {
+  beforeEach(async () => {
     ses = session.fromPartition(partition);
     serviceWorkers = ses.serviceWorkers;
-    await ses.clearData();
-  });
-
-  beforeEach(async () => {
+    serviceWorkers.on('console-message', (_e, details) => {
+      console.log(details.message);
+    });
+    
     const uuid = crypto.randomUUID();
-
     server = http.createServer((req, res) => {
+      const url = new URL(req.url!, `http://${req.headers.host}`);
       // /{uuid}/{file}
-      const file = req.url!.split('/')[2]!;
+      const file = url.pathname!.split('/')[2]!;
 
       if (file.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript');
@@ -40,6 +40,9 @@ describe('ServiceWorkerMain module', () => {
     baseUrl = `http://localhost:${port}/${uuid}`;
 
     wc = webContentsInternal.create({ session: ses });
+    wc.on('console-message', (_e, _l, message) => {
+      console.log(message);
+    });
   });
 
   afterEach(async () => {
@@ -64,7 +67,23 @@ describe('ServiceWorkerMain module', () => {
       expect(serviceWorker).to.not.be.undefined();
       expect(serviceWorker).to.have.property('versionId').that.is.a('number');
       expect(serviceWorker.versionId).to.equal(event.versionId);
+      expect(serviceWorker.scope).to.equal(`${baseUrl}/`);
     });
+
+    it.only('test', async () => {
+      const statusUpdates = [];
+      serviceWorkers.on('version-updated', ({ runningStatus }) => {
+        statusUpdates.push(runningStatus);
+      });
+      const versionStopped = once(serviceWorkers, 'version-updated');
+      await wc.loadURL(`${baseUrl}/index.html?scriptUrl=sw-script-error.js`);
+      const [event] = await versionStarting;
+      expect(event.runningStatus).to.equal('stopped');
+      const versionStarted = once(serviceWorkers, 'version-updated');
+      await versionStarted;
+      
+      // const serviceWorker = serviceWorkers.fromVersionID(event.versionId);
+    })
   });
 
   describe('ipc', () => {
