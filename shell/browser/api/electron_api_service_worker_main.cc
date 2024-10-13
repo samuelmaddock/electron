@@ -45,15 +45,19 @@ VersionIdMap& GetVersionIdMap() {
   return *instance;
 }
 
+ServiceWorkerMain* FromServiceWorkerKey(const ServiceWorkerKey& key) {
+  VersionIdMap& version_map = GetVersionIdMap();
+  auto iter = version_map.find(key);
+  auto* service_worker = iter == version_map.end() ? nullptr : iter->second;
+  return service_worker;
+}
+
 // static
 ServiceWorkerMain* ServiceWorkerMain::FromVersionID(
     int64_t version_id,
     const content::StoragePartition* storage_partition) {
   ServiceWorkerKey key(version_id, storage_partition);
-  VersionIdMap& version_map = GetVersionIdMap();
-  auto iter = version_map.find(key);
-  auto* service_worker = iter == version_map.end() ? nullptr : iter->second;
-  return service_worker;
+  return FromServiceWorkerKey(key);
 }
 
 gin::WrapperInfo ServiceWorkerMain::kWrapperInfo = {gin::kEmbedderNativeGin};
@@ -254,7 +258,8 @@ gin::Handle<ServiceWorkerMain> ServiceWorkerMain::From(
     const content::StoragePartition* storage_partition,
     int64_t version_id) {
   ServiceWorkerKey service_worker_key(version_id, storage_partition);
-  auto* service_worker = FromVersionID(version_id, storage_partition);
+
+  auto* service_worker = FromServiceWorkerKey(service_worker_key);
   if (service_worker)
     return gin::CreateHandle(isolate, service_worker);
 
