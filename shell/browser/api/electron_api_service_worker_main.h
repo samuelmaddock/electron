@@ -27,6 +27,10 @@
 
 class GURL;
 
+namespace content {
+class StoragePartition;
+}
+
 namespace gin {
 class Arguments;
 }  // namespace gin
@@ -41,6 +45,33 @@ class Promise;
 
 namespace electron::api {
 
+// Key to uniquely identify a ServiceWorkerVersion within a StoragePartition.
+struct ServiceWorkerKey {
+  int64_t version_id;
+  raw_ptr<const content::StoragePartition> storage_partition;
+
+  ServiceWorkerKey(int64_t id, const content::StoragePartition* partition)
+      : version_id(id), storage_partition(partition) {}
+
+  bool operator<(const ServiceWorkerKey& other) const {
+    return std::tie(version_id, storage_partition) <
+           std::tie(other.version_id, other.storage_partition);
+  }
+
+  bool operator==(const ServiceWorkerKey& other) const {
+    return version_id == other.version_id &&
+           storage_partition == other.storage_partition;
+  }
+
+  struct Hasher {
+    std::size_t operator()(const ServiceWorkerKey& key) const {
+      return std::hash<const content::StoragePartition*>()(
+                 key.storage_partition) ^
+             std::hash<int64_t>()(key.version_id);
+    }
+  };
+};
+
 // Wraps ServiceWorkerVersion instances
 class ServiceWorkerMain final
     : public gin::Wrappable<ServiceWorkerMain>,
@@ -54,8 +85,11 @@ class ServiceWorkerMain final
   static gin::Handle<ServiceWorkerMain> From(
       v8::Isolate* isolate,
       content::ServiceWorkerContext* sw_context,
+      const content::StoragePartition* storage_partition,
       int64_t version_id);
-  static ServiceWorkerMain* FromVersionID(int64_t version_id);
+  static ServiceWorkerMain* FromVersionID(
+      int64_t version_id,
+      const content::StoragePartition* storage_partition);
 
   // gin_helper::Constructible
   static void FillObjectTemplate(v8::Isolate*, v8::Local<v8::ObjectTemplate>);
@@ -73,7 +107,8 @@ class ServiceWorkerMain final
 
  protected:
   explicit ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
-                             int64_t version_id);
+                             int64_t version_id,
+                             const ServiceWorkerKey& key);
   ~ServiceWorkerMain() override;
 
  private:
@@ -108,6 +143,7 @@ class ServiceWorkerMain final
   GURL ScopeURL() const;
 
   int64_t version_id_;
+  ServiceWorkerKey key_;
 
   // Whether the Service Worker version has been destroyed.
   bool version_destroyed_ = false;

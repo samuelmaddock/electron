@@ -34,9 +34,10 @@
 
 namespace electron::api {
 
-// TODO: version IDs aren't globally unique. need to pair with browser context
-// VersionId -> ServiceWorkerMain*
-typedef std::unordered_map<int64_t /* version_id */, ServiceWorkerMain*>
+// ServiceWorkerKey -> ServiceWorkerMain*
+typedef std::unordered_map<ServiceWorkerKey,
+                           ServiceWorkerMain*,
+                           ServiceWorkerKey::Hasher>
     VersionIdMap;
 
 VersionIdMap& GetVersionIdMap() {
@@ -45,9 +46,12 @@ VersionIdMap& GetVersionIdMap() {
 }
 
 // static
-ServiceWorkerMain* ServiceWorkerMain::FromVersionID(int64_t version_id) {
+ServiceWorkerMain* ServiceWorkerMain::FromVersionID(
+    int64_t version_id,
+    const content::StoragePartition* storage_partition) {
+  ServiceWorkerKey key(version_id, storage_partition);
   VersionIdMap& version_map = GetVersionIdMap();
-  auto iter = version_map.find(version_id);
+  auto iter = version_map.find(key);
   auto* service_worker = iter == version_map.end() ? nullptr : iter->second;
   return service_worker;
 }
@@ -55,13 +59,14 @@ ServiceWorkerMain* ServiceWorkerMain::FromVersionID(int64_t version_id) {
 gin::WrapperInfo ServiceWorkerMain::kWrapperInfo = {gin::kEmbedderNativeGin};
 
 ServiceWorkerMain::ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
-                                     int64_t version_id)
-    : version_id_(version_id), service_worker_context_(sw_context) {
+                                     int64_t version_id,
+                                     const ServiceWorkerKey& key)
+    : version_id_(version_id), key_(key), service_worker_context_(sw_context) {
   // Ensure SW is live
   DCHECK(service_worker_context_->IsLiveStartingServiceWorker(version_id) ||
          service_worker_context_->IsLiveRunningServiceWorker(version_id));
 
-  GetVersionIdMap().emplace(version_id_, this);
+  GetVersionIdMap().emplace(key_, this);
   InvalidateState();
 }
 
@@ -143,7 +148,7 @@ const content::ServiceWorkerRunningInfo* ServiceWorkerMain::GetRunningInfo()
 void ServiceWorkerMain::OnDestroyed() {
   version_destroyed_ = true;
   running_info_.reset();
-  GetVersionIdMap().erase(version_id_);
+  GetVersionIdMap().erase(key_);
   Unpin();
 }
 
@@ -246,13 +251,16 @@ gin::Handle<ServiceWorkerMain> ServiceWorkerMain::New(v8::Isolate* isolate) {
 gin::Handle<ServiceWorkerMain> ServiceWorkerMain::From(
     v8::Isolate* isolate,
     content::ServiceWorkerContext* sw_context,
+    const content::StoragePartition* storage_partition,
     int64_t version_id) {
-  auto* service_worker = FromVersionID(version_id);
+  ServiceWorkerKey service_worker_key(version_id, storage_partition);
+  auto* service_worker = FromVersionID(version_id, storage_partition);
   if (service_worker)
     return gin::CreateHandle(isolate, service_worker);
 
-  auto handle =
-      gin::CreateHandle(isolate, new ServiceWorkerMain(sw_context, version_id));
+  auto handle = gin::CreateHandle(
+      isolate,
+      new ServiceWorkerMain(sw_context, version_id, service_worker_key));
 
   // Prevent garbage collection of frame until it has been deleted internally.
   handle->Pin(isolate);

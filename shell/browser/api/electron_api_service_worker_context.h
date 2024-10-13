@@ -12,6 +12,10 @@
 #include "shell/browser/event_emitter_mixin.h"
 #include "third_party/blink/public/common/service_worker/embedded_worker_status.h"
 
+namespace content {
+class StoragePartition;
+}
+
 namespace gin {
 template <typename T>
 class Handle;
@@ -75,6 +79,10 @@ class ServiceWorkerContext final
                         blink::EmbeddedWorkerStatus running_status);
 
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
+
+  // Service worker registration and versions are unique to a storage partition.
+  // Keep a reference to the storage partition to be used for lookups.
+  raw_ptr<content::StoragePartition> storage_partition_;
 
   base::WeakPtrFactory<ServiceWorkerContext> weak_ptr_factory_{this};
 };

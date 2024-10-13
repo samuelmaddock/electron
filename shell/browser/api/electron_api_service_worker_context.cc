@@ -99,8 +99,8 @@ gin::WrapperInfo ServiceWorkerContext::kWrapperInfo = {gin::kEmbedderNativeGin};
 ServiceWorkerContext::ServiceWorkerContext(
     v8::Isolate* isolate,
     ElectronBrowserContext* browser_context) {
-  service_worker_context_ =
-      browser_context->GetDefaultStoragePartition()->GetServiceWorkerContext();
+  storage_partition_ = browser_context->GetDefaultStoragePartition();
+  service_worker_context_ = storage_partition_->GetServiceWorkerContext();
   service_worker_context_->AddObserver(this);
 }
 
@@ -111,7 +111,8 @@ ServiceWorkerContext::~ServiceWorkerContext() {
 void ServiceWorkerContext::OnVersionUpdated(
     int64_t version_id,
     blink::EmbeddedWorkerStatus running_status) {
-  ServiceWorkerMain* worker = ServiceWorkerMain::FromVersionID(version_id);
+  ServiceWorkerMain* worker =
+      ServiceWorkerMain::FromVersionID(version_id, storage_partition_);
   if (worker)
     worker->OnVersionUpdated();
 
@@ -207,7 +208,7 @@ v8::Local<v8::Value> ServiceWorkerContext::FromVersionID(
   }
 
   return ServiceWorkerMain::From(thrower.isolate(), service_worker_context_,
-                                 version_id)
+                                 storage_partition_, version_id)
       .ToV8();
 }
 
@@ -215,7 +216,8 @@ v8::Local<v8::Value> ServiceWorkerContext::FromVersionID(
 gin::Handle<ServiceWorkerMain> ServiceWorkerContext::FromVersionIDIfExists(
     v8::Isolate* isolate,
     int64_t version_id) {
-  ServiceWorkerMain* worker = ServiceWorkerMain::FromVersionID(version_id);
+  ServiceWorkerMain* worker =
+      ServiceWorkerMain::FromVersionID(version_id, storage_partition_);
   if (!worker)
     return gin::Handle<ServiceWorkerMain>();
   return gin::CreateHandle(isolate, worker);
