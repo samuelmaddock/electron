@@ -1,9 +1,11 @@
-import { net } from 'electron/main';
 import { fetchWithSession } from '@electron/internal/browser/api/net-fetch';
 import { ipcMainInternal } from '@electron/internal/browser/ipc-main-internal';
-import type { ServiceWorkerMain } from 'electron/main';
 import { MessagePortMain } from '@electron/internal/browser/message-port-main';
 import * as deprecate from '@electron/internal/common/deprecate';
+
+import type { ServiceWorkerMain } from 'electron/main';
+import { net } from 'electron/main';
+
 const { fromPartition, fromPath, Session } = process._linkedBinding('electron_browser_session');
 const { isDisplayMediaSystemPickerAvailable } = process._linkedBinding('electron_browser_desktop_capturer');
 
@@ -32,7 +34,7 @@ const addReturnValueToEvent = (event: Electron.IpcMainEvent | Electron.IpcMainSe
 };
 
 Session.prototype._init = function () {
-  const getServiceWorkerFromEvent = (event: Electron.IpcMainServiceWorkerEvent | Electron.IpcMainServiceWorkerInvokeEvent): ServiceWorkerMain | null => {
+  const getServiceWorkerFromEvent = (event: Electron.IpcMainServiceWorkerEvent | Electron.IpcMainServiceWorkerInvokeEvent): ServiceWorkerMain | undefined => {
     return this.serviceWorkers._fromVersionIDIfExists(event.versionId);
   };
   const addServiceWorkerPropertyToEvent = (event: Electron.IpcMainServiceWorkerEvent | Electron.IpcMainServiceWorkerInvokeEvent) => {

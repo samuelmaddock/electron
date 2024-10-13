@@ -55,23 +55,26 @@ describe('ServiceWorkerMain module', () => {
 
   describe('serviceWorkers.fromVersionID', () => {
     it('returns undefined for non-live service worker', () => {
-      const serviceWorker = serviceWorkers.fromVersionID(-1);
-      expect(serviceWorker).to.be.undefined();
+      expect(serviceWorkers.fromVersionID(-1)).to.be.undefined();
+      expect(serviceWorkers._fromVersionIDIfExists(-1)).to.be.undefined();
     });
 
     it('returns instance for live service worker', async () => {
-      const versionUpdated = once(serviceWorkers, 'version-updated');
+      const runningStatusChanged = once(serviceWorkers, 'running-status-changed');
       wc.loadURL(`${baseUrl}/index.html`);
-      const [{ versionId }] = await versionUpdated;
+      const [{ versionId }] = await runningStatusChanged;
       const serviceWorker = serviceWorkers.fromVersionID(versionId);
       expect(serviceWorker).to.not.be.undefined();
+      expect(serviceWorkers._fromVersionIDIfExists(versionId)).to.not.be.undefined();
+      // eslint-disable-next-line no-unused-expressions
+      serviceWorker; // hold reference
     });
 
     it('should not crash on script error', async () => {
       wc.loadURL(`${baseUrl}/index.html?scriptUrl=sw-script-error.js`);
       let serviceWorker;
       const actualStatuses = [];
-      for await (const [{ versionId, runningStatus }] of on(serviceWorkers, 'version-updated')) {
+      for await (const [{ versionId, runningStatus }] of on(serviceWorkers, 'running-status-changed')) {
         if (!serviceWorker) {
           serviceWorker = serviceWorkers.fromVersionID(versionId);
         }
@@ -99,9 +102,9 @@ describe('ServiceWorkerMain module', () => {
 
   describe("'versionId' property", () => {
     it('matches the expected value', async () => {
-      const versionUpdated = once(serviceWorkers, 'version-updated');
+      const runningStatusChanged = once(serviceWorkers, 'running-status-changed');
       wc.loadURL(`${baseUrl}/index.html`);
-      const [{ versionId }] = await versionUpdated;
+      const [{ versionId }] = await runningStatusChanged;
       const serviceWorker = serviceWorkers.fromVersionID(versionId);
       expect(serviceWorker).to.not.be.undefined();
       if (!serviceWorker) return;
@@ -111,12 +114,10 @@ describe('ServiceWorkerMain module', () => {
   });
 
   describe("'scope' property", () => {
-    // TODO: ServiceWorkerMain is internally indexed by non-globally unique
-    // version ID. need to fix this
     it('matches the expected value', async () => {
-      const versionUpdated = once(serviceWorkers, 'version-updated');
+      const runningStatusChanged = once(serviceWorkers, 'running-status-changed');
       wc.loadURL(`${baseUrl}/index.html`);
-      const [{ versionId }] = await versionUpdated;
+      const [{ versionId }] = await runningStatusChanged;
       const serviceWorker = serviceWorkers.fromVersionID(versionId);
       expect(serviceWorker).to.not.be.undefined();
       if (!serviceWorker) return;
