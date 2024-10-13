@@ -59,9 +59,9 @@ app.on('browser-window-created', (event, window) => {
 
 Returns `Object`:
 
-- `complete` Function - Method to call when the task has completed. If never called, the service won't terminate while otherwise idle.
+- `end` Function - Method to call when the task has ended. If never called, the service won't terminate while otherwise idle.
 
-Initiate a task to keep the service worker alive until completed.
+Initiate a task to keep the service worker alive until ended.
 
 ```js
 const { session } = require('electron')
@@ -78,8 +78,8 @@ serviceWorker?.ipc.handle('request-data', async () => {
   try {
     return await fetchData()
   } finally {
-    // Mark task as complete to allow service worker to terminate when idle.
-    task.complete()
+    // Mark task as ended to allow service worker to terminate when idle.
+    task.end()
   }
 })
 ```

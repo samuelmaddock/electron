@@ -75,6 +75,7 @@ declare namespace Electron {
     _send(internal: boolean, channel: string, args: any): void;
     _startExternalRequest(hasTimeout: boolean): { id: string, ok: boolean };
     _finishExternalRequest(uuid: string): void;
+    _countExternalRequests(): number;
   }
 
   interface Session {

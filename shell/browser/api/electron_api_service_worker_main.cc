@@ -167,16 +167,19 @@ bool ServiceWorkerMain::IsDestroyed() const {
   return version_destroyed_;
 }
 
+const blink::StorageKey ServiceWorkerMain::GetStorageKey() {
+  auto* info = GetRunningInfo();
+  DCHECK(info);
+  GURL scope = info->scope;
+  return blink::StorageKey::CreateFirstParty(url::Origin::Create(scope));
+}
+
 v8::Local<v8::Promise> ServiceWorkerMain::StartWorker(v8::Isolate* isolate) {
   gin_helper::Promise<void> promise(isolate);
   v8::Local<v8::Promise> handle = promise.GetHandle();
 
-  auto* info = GetRunningInfo();
-  DCHECK(info);
-  GURL scope = info->scope;
-
   service_worker_context_->StartWorkerForScope(
-      scope, blink::StorageKey::CreateFirstParty(url::Origin::Create(scope)),
+      ScopeURL(), GetStorageKey(),
       base::BindOnce(&ServiceWorkerMain::DidStartWorkerForScope,
                      weak_factory_.GetWeakPtr(), std::move(promise),
                      base::Time::Now()),
@@ -235,6 +238,11 @@ void ServiceWorkerMain::FinishExternalRequest(v8::Isolate* isolate,
   service_worker_context_->FinishedExternalRequest(version_id_, request_uuid);
 }
 
+size_t ServiceWorkerMain::CountExternalRequests() {
+  auto& storage_key = GetStorageKey();
+  return service_worker_context_->CountExternalRequestsForTest(storage_key);
+}
+
 int64_t ServiceWorkerMain::VersionID() const {
   return version_id_;
 }
@@ -285,6 +293,8 @@ void ServiceWorkerMain::FillObjectTemplate(
                  &ServiceWorkerMain::StartExternalRequest)
       .SetMethod("_finishExternalRequest",
                  &ServiceWorkerMain::FinishExternalRequest)
+      .SetMethod("_countExternalRequests",
+                 &ServiceWorkerMain::CountExternalRequests)
       .SetProperty("versionId", &ServiceWorkerMain::VersionID)
       .SetProperty("scope", &ServiceWorkerMain::ScopeURL)
       .Build();
