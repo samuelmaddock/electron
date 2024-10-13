@@ -1,4 +1,4 @@
-import { session, webContents as webContentsModule, WebContents } from 'electron/main';
+import { ipcMain, session, webContents as webContentsModule, WebContents } from 'electron/main';
 
 import { expect } from 'chai';
 
@@ -14,6 +14,7 @@ const DEBUG = false;
 
 describe('ServiceWorkerMain module', () => {
   const fixtures = path.resolve(__dirname, 'fixtures');
+  const preloadRealmFixtures = path.resolve(fixtures, 'api/preload-realm');
   const webContentsInternal: typeof ElectronInternal.WebContents = webContentsModule as any;
 
   let ses: Electron.Session;
@@ -66,6 +67,15 @@ describe('ServiceWorkerMain module', () => {
     return wc.loadURL(`${baseUrl}/index.html${scriptParams}`);
   }
 
+  async function unregisterAllServiceWorkers () {
+    await wc.executeJavaScript(`(${async function () {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    }}())`);
+  }
+
   async function waitForServiceWorker (expectedRunningStatus: Electron.ServiceWorkersRunningStatusChangedEventParams['runningStatus'] = 'starting') {
     const serviceWorkerPromise = new Promise<Electron.ServiceWorkerMain>((resolve) => {
       function onRunningStatusChanged ({ versionId, runningStatus }: Electron.ServiceWorkersRunningStatusChangedEventParams) {
@@ -115,14 +125,49 @@ describe('ServiceWorkerMain module', () => {
       expect(actualStatuses).to.deep.equal(['starting', 'stopping']);
       expect(serviceWorker).to.not.be.undefined();
     });
+
+    it.skip('does not find unregistered service worker', async () => {
+      // TODO: register, lookup, unregister, lookup
+    });
   });
 
   describe('isDestroyed()', () => {
-    // TODO
+    it('is not destroyed after being created', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker();
+      expect(serviceWorker.isDestroyed()).to.be.false();
+    });
+
+    // TODO: hook into ServiceWorkerLive OnDestroyed
+    it.skip('is destroyed after being unregistered', async () => {
+      loadWorkerScript();
+      const stoppedServiceWorkerPromise = waitForServiceWorker('stopped');
+      const serviceWorker = await waitForServiceWorker();
+      expect(serviceWorker.isDestroyed()).to.be.false();
+      await unregisterAllServiceWorkers();
+      await stoppedServiceWorkerPromise;
+    });
   });
 
   describe('startWorker()', () => {
-    // TODO
+    it('resolves with running workers', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker('running');
+      const startWorkerPromise = serviceWorker.startWorker();
+      await expect(startWorkerPromise).to.eventually.be.fulfilled();
+    });
+
+    // TODO: crashes
+    it.skip('resolves with starting workers', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker('starting');
+      const startWorkerPromise = serviceWorker.startWorker();
+      await expect(startWorkerPromise).to.eventually.be.fulfilled();
+    });
+
+    it.skip('starts previously stopped worker', () => {
+      // TODO
+    });
   });
 
   describe('startTask()', () => {
@@ -195,6 +240,44 @@ describe('ServiceWorkerMain module', () => {
   });
 
   describe('ipc', () => {
-    // TODO
+    describe('sw -> main', () => {
+      it('receives a message', async () => {
+        ses.setPreloadScripts([
+          {
+            type: 'service-worker',
+            filePath: path.resolve(preloadRealmFixtures, 'preload-send-ping.js')
+          }
+        ]);
+
+        loadWorkerScript();
+        const serviceWorker = await waitForServiceWorker();
+        const pingPromise = once(serviceWorker.ipc, 'ping');
+        await pingPromise;
+      });
+
+      it('does not receive message on ipcMain', async () => {
+        ses.setPreloadScripts([
+          {
+            type: 'service-worker',
+            filePath: path.resolve(preloadRealmFixtures, 'preload-send-ping.js')
+          }
+        ]);
+
+        loadWorkerScript();
+        await waitForServiceWorker();
+        const abortController = new AbortController();
+        try {
+          let pingReceived = false;
+          once(ipcMain, 'ping', { signal: abortController.signal }).then(() => {
+            pingReceived = true;
+          });
+          await once(ses, '-ipc-message');
+          await new Promise<void>(queueMicrotask);
+          expect(pingReceived).to.be.false();
+        } finally {
+          abortController.abort();
+        }
+      });
+    });
   });
 });
