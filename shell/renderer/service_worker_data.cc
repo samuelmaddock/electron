@@ -10,7 +10,6 @@
 #include "shell/renderer/electron_ipc_native.h"
 #include "shell/renderer/preload_realm_context.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_registry.h"
-// #include "third_party/blink/public/web/web_message_port_converter.h"
 
 namespace electron {
 
@@ -43,7 +42,6 @@ void ServiceWorkerData::Message(bool internal,
 
   v8::Local<v8::Context> context = v8_context_.Get(isolate_);
 
-  // TODO: get preload realm context from SW context
   v8::MaybeLocal<v8::Context> maybe_preload_context =
       preload_realm::GetPreloadRealmContext(context);
 
@@ -62,35 +60,12 @@ void ServiceWorkerData::Message(bool internal,
 
 void ServiceWorkerData::ReceivePostMessage(const std::string& channel,
                                            blink::TransferableMessage message) {
-  LOG(INFO) << "***ServiceWorkerData::ReceivePostMessage: " << channel;
-  // blink::WebLocalFrame* frame = render_frame()->GetWebFrame();
-  // if (!frame)
-  //   return;
-
-  // v8::Isolate* isolate = frame->GetAgentGroupScheduler()->Isolate();
-  // v8::HandleScope handle_scope(isolate);
-
-  // v8::Local<v8::Context> context = renderer_client_->GetContext(frame,
-  // isolate); v8::Context::Scope context_scope(context);
-
-  // v8::Local<v8::Value> message_value = DeserializeV8Value(isolate, message);
-
-  // std::vector<v8::Local<v8::Value>> ports;
-  // for (auto& port : message.ports) {
-  //   ports.emplace_back(
-  //       blink::WebMessagePortConverter::EntangleAndInjectMessagePortChannel(
-  //           context, std::move(port)));
-  // }
-
-  // std::vector<v8::Local<v8::Value>> args = {message_value};
-
-  // EmitIPCEvent(context, false, channel, ports, gin::ConvertToV8(isolate,
-  // args));
+  NOTIMPLEMENTED();
 }
 
 void ServiceWorkerData::TakeHeapSnapshot(mojo::ScopedHandle file,
                                          TakeHeapSnapshotCallback callback) {
-  // Not implemented
+  NOTIMPLEMENTED();
   std::move(callback).Run(false);
 }
 
