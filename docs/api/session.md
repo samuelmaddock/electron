@@ -1340,12 +1340,18 @@ this session just before normal `preload` scripts run.
 Returns `string[]` an array of paths to preload scripts that have been
 registered.
 
-#### `ses.setPreloadScripts(scripts)`
+#### `ses.registerPreloadScript(script)`
 
-* `scripts` [PreloadScript](structures/preload-script.md)[] - An array of absolute path to preload scripts
+* `script` [PreloadScript](structures/preload-script.md) - Preload script
 
-Adds scripts that will be executed on ALL web contents that are associated with
+Registers script that will be executed on ALL web contents that are associated with
 this session just before normal `preload` scripts run.
+
+#### `ses.unregisterPreloadScript(id)`
+
+* `id` string - Preload script ID
+
+Unregisters script.
 
 #### `ses.getPreloadScripts()`
 

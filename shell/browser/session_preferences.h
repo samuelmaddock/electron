@@ -26,12 +26,7 @@ class SessionPreferences : public base::SupportsUserData::Data {
 
   ~SessionPreferences() override;
 
-  void set_preload_scripts(const std::vector<PreloadScript>& preload_scripts) {
-    preload_scripts_ = preload_scripts;
-  }
-  const std::vector<PreloadScript>& preload_scripts() const {
-    return preload_scripts_;
-  }
+  std::vector<PreloadScript>& preload_scripts() { return preload_scripts_; }
 
  private:
   SessionPreferences();
