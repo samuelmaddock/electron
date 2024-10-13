@@ -112,6 +112,8 @@ class ServiceWorkerMain final
   ~ServiceWorkerMain() override;
 
  private:
+  const blink::StorageKey GetStorageKey();
+
   v8::Local<v8::Promise> StartWorker(v8::Isolate* isolate);
   void DidStartWorkerForScope(gin_helper::Promise<void> promise,
                               base::Time start_time,
@@ -125,6 +127,7 @@ class ServiceWorkerMain final
   gin_helper::Dictionary StartExternalRequest(v8::Isolate* isolate,
                                               bool has_timeout);
   void FinishExternalRequest(v8::Isolate* isolate, std::string uuid);
+  size_t CountExternalRequests();
 
   mojom::ElectronRenderer* GetRendererApi();
 

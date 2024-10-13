@@ -9,6 +9,9 @@ import * as path from 'node:path';
 
 import { listen } from './lib/spec-helpers';
 
+// Toggle to add extra debug output
+const DEBUG = false;
+
 describe('ServiceWorkerMain module', () => {
   const fixtures = path.resolve(__dirname, 'fixtures');
   const webContentsInternal: typeof ElectronInternal.WebContents = webContentsModule as any;
@@ -22,12 +25,14 @@ describe('ServiceWorkerMain module', () => {
   beforeEach(async () => {
     ses = session.fromPartition(`service-worker-main-spec-${crypto.randomUUID()}`);
     serviceWorkers = ses.serviceWorkers;
-    // serviceWorkers.on('console-message', (_e, details) => {
-    //   console.log(details.message);
-    // });
+
+    if (DEBUG) {
+      serviceWorkers.on('console-message', (_e, details) => {
+        console.log(details.message);
+      });
+    }
 
     const uuid = crypto.randomUUID();
-    console.log(`new uuid ${uuid}`);
     server = http.createServer((req, res) => {
       const url = new URL(req.url!, `http://${req.headers.host}`);
       // /{uuid}/{file}
@@ -42,9 +47,12 @@ describe('ServiceWorkerMain module', () => {
     baseUrl = `http://localhost:${port}/${uuid}`;
 
     wc = webContentsInternal.create({ session: ses });
-    // wc.on('console-message', (_e, _l, message) => {
-    //   console.log(message);
-    // });
+
+    if (DEBUG) {
+      wc.on('console-message', (_e, _l, message) => {
+        console.log(message);
+      });
+    }
   });
 
   afterEach(async () => {
@@ -52,6 +60,27 @@ describe('ServiceWorkerMain module', () => {
     server.close();
     ses.setPreloadScripts([]);
   });
+
+  async function loadWorkerScript (scriptUrl?: string) {
+    const scriptParams = scriptUrl ? `?scriptUrl=${scriptUrl}` : '';
+    return wc.loadURL(`${baseUrl}/index.html${scriptParams}`);
+  }
+
+  async function waitForServiceWorker (expectedRunningStatus: Electron.ServiceWorkersRunningStatusChangedEventParams['runningStatus'] = 'starting') {
+    const serviceWorkerPromise = new Promise<Electron.ServiceWorkerMain>((resolve) => {
+      function onRunningStatusChanged ({ versionId, runningStatus }: Electron.ServiceWorkersRunningStatusChangedEventParams) {
+        if (runningStatus === expectedRunningStatus) {
+          const serviceWorker = serviceWorkers.fromVersionID(versionId)!;
+          serviceWorkers.off('running-status-changed', onRunningStatusChanged);
+          resolve(serviceWorker);
+        }
+      }
+      serviceWorkers.on('running-status-changed', onRunningStatusChanged);
+    });
+    const serviceWorker = await serviceWorkerPromise;
+    expect(serviceWorker).to.not.be.undefined();
+    return serviceWorker!;
+  }
 
   describe('serviceWorkers.fromVersionID', () => {
     it('returns undefined for non-live service worker', () => {
@@ -61,7 +90,7 @@ describe('ServiceWorkerMain module', () => {
 
     it('returns instance for live service worker', async () => {
       const runningStatusChanged = once(serviceWorkers, 'running-status-changed');
-      wc.loadURL(`${baseUrl}/index.html`);
+      loadWorkerScript();
       const [{ versionId }] = await runningStatusChanged;
       const serviceWorker = serviceWorkers.fromVersionID(versionId);
       expect(serviceWorker).to.not.be.undefined();
@@ -97,7 +126,48 @@ describe('ServiceWorkerMain module', () => {
   });
 
   describe('startTask()', () => {
-    // TODO
+    it('has no tasks in-flight initially', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker();
+      expect(serviceWorker._countExternalRequests()).to.equal(0);
+    });
+
+    it('can start and end a task', async () => {
+      loadWorkerScript();
+
+      // Internally, ServiceWorkerVersion buckets tasks into requests made
+      // during and after startup.
+      // ServiceWorkerContext::CountExternalRequestsForTest only considers
+      // requests made while SW is in running status so we need to wait for that
+      // to read an accurate count.
+      const serviceWorker = await waitForServiceWorker('running');
+
+      const task = serviceWorker.startTask();
+      expect(task).to.be.an('object');
+      expect(task).to.have.property('end').that.is.a('function');
+      expect(serviceWorker._countExternalRequests()).to.equal(1);
+
+      task.end();
+
+      // Count will decrement after Promise.finally callback
+      await new Promise<void>(queueMicrotask);
+      expect(serviceWorker._countExternalRequests()).to.equal(0);
+    });
+
+    it('can have more than one active task', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker('running');
+
+      const taskA = serviceWorker.startTask();
+      const taskB = serviceWorker.startTask();
+      expect(serviceWorker._countExternalRequests()).to.equal(2);
+      taskB.end();
+      taskA.end();
+
+      // Count will decrement after Promise.finally callback
+      await new Promise<void>(queueMicrotask);
+      expect(serviceWorker._countExternalRequests()).to.equal(0);
+    });
   });
 
   describe("'versionId' property", () => {
@@ -115,10 +185,8 @@ describe('ServiceWorkerMain module', () => {
 
   describe("'scope' property", () => {
     it('matches the expected value', async () => {
-      const runningStatusChanged = once(serviceWorkers, 'running-status-changed');
-      wc.loadURL(`${baseUrl}/index.html`);
-      const [{ versionId }] = await runningStatusChanged;
-      const serviceWorker = serviceWorkers.fromVersionID(versionId);
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker();
       expect(serviceWorker).to.not.be.undefined();
       if (!serviceWorker) return;
       expect(serviceWorker).to.have.property('scope').that.is.a('string');

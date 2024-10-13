@@ -45,7 +45,7 @@ ServiceWorkerMain.prototype.startTask = function () {
   });
 
   return {
-    complete () { onResolve(); }
+    end () { onResolve(); }
   };
 };
 
