@@ -59,7 +59,7 @@ describe('ServiceWorkerMain module', () => {
   afterEach(async () => {
     wc.destroy();
     server.close();
-    ses.setPreloadScripts([]);
+    ses.getPreloadScripts().map(({ id }) => ses.unregisterPreloadScript(id));
   });
 
   async function loadWorkerScript (scriptUrl?: string) {
@@ -242,12 +242,11 @@ describe('ServiceWorkerMain module', () => {
   describe('ipc', () => {
     describe('sw -> main', () => {
       it('receives a message', async () => {
-        ses.setPreloadScripts([
-          {
-            type: 'service-worker',
-            filePath: path.resolve(preloadRealmFixtures, 'preload-send-ping.js')
-          }
-        ]);
+        ses.registerPreloadScript({
+          id: crypto.randomUUID(),
+          type: 'service-worker',
+          filePath: path.resolve(preloadRealmFixtures, 'preload-send-ping.js')
+        });
 
         loadWorkerScript();
         const serviceWorker = await waitForServiceWorker();
@@ -256,12 +255,11 @@ describe('ServiceWorkerMain module', () => {
       });
 
       it('does not receive message on ipcMain', async () => {
-        ses.setPreloadScripts([
-          {
-            type: 'service-worker',
-            filePath: path.resolve(preloadRealmFixtures, 'preload-send-ping.js')
-          }
-        ]);
+        ses.registerPreloadScript({
+          id: crypto.randomUUID(),
+          type: 'service-worker',
+          filePath: path.resolve(preloadRealmFixtures, 'preload-send-ping.js')
+        });
 
         loadWorkerScript();
         await waitForServiceWorker();

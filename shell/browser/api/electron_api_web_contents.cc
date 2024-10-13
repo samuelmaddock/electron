@@ -3612,8 +3612,8 @@ void WebContents::DoGetZoomLevel(
 std::optional<PreloadScript> WebContents::GetPreloadScript() const {
   if (auto* web_preferences = WebContentsPreferences::From(web_contents())) {
     if (auto preload = web_preferences->GetPreloadPath()) {
-      auto preload_script =
-          PreloadScript{PreloadScript::ScriptType::kWebFrame, preload.value()};
+      auto preload_script = PreloadScript{
+          "", PreloadScript::ScriptType::kWebFrame, preload.value()};
       return preload_script;
     }
   }

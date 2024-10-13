@@ -18,6 +18,7 @@ namespace electron {
 struct PreloadScript {
   enum class ScriptType { kWebFrame, kServiceWorker };
 
+  std::string id;
   ScriptType script_type;
   base::FilePath file_path;
 };
@@ -60,6 +61,7 @@ struct Converter<PreloadScript> {
                                    const PreloadScript& script) {
     gin::Dictionary dict(isolate, v8::Object::New(isolate));
     dict.Set("filePath", script.file_path.AsUTF8Unsafe());
+    dict.Set("id", script.id);
     dict.Set("type", script.script_type);
     return ConvertToV8(isolate, dict).As<v8::Object>();
   }
@@ -71,10 +73,21 @@ struct Converter<PreloadScript> {
     if (!ConvertFromV8(isolate, val, &options))
       return false;
     if (PreloadScript::ScriptType script_type;
-        options.Get("type", &script_type))
+        options.Get("type", &script_type)) {
       out->script_type = script_type;
-    if (base::FilePath file_path; options.Get("filePath", &file_path))
+    } else {
+      return false;
+    }
+    if (base::FilePath file_path; options.Get("filePath", &file_path)) {
       out->file_path = file_path;
+    } else {
+      return false;
+    }
+    if (std::string id; options.Get("id", &id)) {
+      out->id = id;
+    } else {
+      return false;
+    }
     return true;
   }
 };

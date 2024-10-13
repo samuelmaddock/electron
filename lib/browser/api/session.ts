@@ -128,10 +128,19 @@ Session.prototype.getPreloads = function () {
   return this.getPreloadScripts().filter(script => script.type === 'frame').map(script => script.filePath);
 };
 
-const setPreloadsDeprecated = deprecate.warnOnce('session.setPreloads', 'session.setPreloadScripts');
+const setPreloadsDeprecated = deprecate.warnOnce('session.setPreloads', 'session.registerPreloadScript');
 Session.prototype.setPreloads = function (preloads) {
   setPreloadsDeprecated();
-  this.setPreloadScripts(preloads.map(filePath => ({ type: 'frame', filePath })));
+  this.getPreloadScripts().forEach(script => {
+    this.unregisterPreloadScript(script.id);
+  });
+  preloads.map(filePath => ({
+    id: `deprecated-${crypto.randomUUID()}`,
+    type: 'frame',
+    filePath
+  }) as Electron.PreloadScript).forEach(script => {
+    this.registerPreloadScript(script);
+  });
 };
 
 export default {
