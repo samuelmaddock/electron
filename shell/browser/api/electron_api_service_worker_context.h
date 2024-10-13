@@ -75,8 +75,8 @@ class ServiceWorkerContext final
   ~ServiceWorkerContext() override;
 
  private:
-  void OnVersionUpdated(int64_t version_id,
-                        blink::EmbeddedWorkerStatus running_status);
+  void OnRunningStatusChanged(int64_t version_id,
+                              blink::EmbeddedWorkerStatus running_status);
 
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
 

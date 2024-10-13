@@ -56,7 +56,7 @@ Returns:
 
 Emitted when a service worker has been registered. Can occur after a call to [`navigator.serviceWorker.register('/sw.js')`](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register) successfully resolves or when a Chrome extension is loaded.
 
-#### Event: 'version-updated' _Experimental_
+#### Event: 'running-status-changed' _Experimental_
 
 Returns:
 
@@ -65,8 +65,7 @@ Returns:
   * `runningStatus` string - Running status.
     Possible values include `starting`, `running`, `stopping`, or `stopped`.
 
-Emitted when a service worker version updates its running status. A version refers to a specific
-version of a Service Worker script for a given scope.
+Emitted when a service worker's running status has changed.
 
 ### Instance Methods
 

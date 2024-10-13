@@ -103,7 +103,7 @@ class ServiceWorkerMain final
   ServiceWorkerMain(const ServiceWorkerMain&) = delete;
   ServiceWorkerMain& operator=(const ServiceWorkerMain&) = delete;
 
-  void OnVersionUpdated();
+  void OnRunningStatusChanged();
 
  protected:
   explicit ServiceWorkerMain(content::ServiceWorkerContext* sw_context,

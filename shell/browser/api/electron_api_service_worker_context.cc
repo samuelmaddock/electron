@@ -108,20 +108,21 @@ ServiceWorkerContext::~ServiceWorkerContext() {
   service_worker_context_->RemoveObserver(this);
 }
 
-void ServiceWorkerContext::OnVersionUpdated(
+void ServiceWorkerContext::OnRunningStatusChanged(
     int64_t version_id,
     blink::EmbeddedWorkerStatus running_status) {
   ServiceWorkerMain* worker =
       ServiceWorkerMain::FromVersionID(version_id, storage_partition_);
   if (worker)
-    worker->OnVersionUpdated();
+    worker->OnRunningStatusChanged();
 
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
   v8::HandleScope scope(isolate);
-  EmitWithoutEvent("version-updated", gin::DataObjectBuilder(isolate)
-                                          .Set("versionId", version_id)
-                                          .Set("runningStatus", running_status)
-                                          .Build());
+  EmitWithoutEvent("running-status-changed",
+                   gin::DataObjectBuilder(isolate)
+                       .Set("versionId", version_id)
+                       .Set("runningStatus", running_status)
+                       .Build());
 }
 
 void ServiceWorkerContext::OnReportConsoleMessage(
@@ -149,21 +150,21 @@ void ServiceWorkerContext::OnRegistrationCompleted(const GURL& scope) {
 }
 
 void ServiceWorkerContext::OnVersionStartingRunning(int64_t version_id) {
-  OnVersionUpdated(version_id, blink::EmbeddedWorkerStatus::kStarting);
+  OnRunningStatusChanged(version_id, blink::EmbeddedWorkerStatus::kStarting);
 }
 
 void ServiceWorkerContext::OnVersionStartedRunning(
     int64_t version_id,
     const content::ServiceWorkerRunningInfo& running_info) {
-  OnVersionUpdated(version_id, blink::EmbeddedWorkerStatus::kRunning);
+  OnRunningStatusChanged(version_id, blink::EmbeddedWorkerStatus::kRunning);
 }
 
 void ServiceWorkerContext::OnVersionStoppingRunning(int64_t version_id) {
-  OnVersionUpdated(version_id, blink::EmbeddedWorkerStatus::kStopping);
+  OnRunningStatusChanged(version_id, blink::EmbeddedWorkerStatus::kStopping);
 }
 
 void ServiceWorkerContext::OnVersionStoppedRunning(int64_t version_id) {
-  OnVersionUpdated(version_id, blink::EmbeddedWorkerStatus::kStopped);
+  OnRunningStatusChanged(version_id, blink::EmbeddedWorkerStatus::kStopped);
 }
 
 void ServiceWorkerContext::OnDestruct(content::ServiceWorkerContext* context) {

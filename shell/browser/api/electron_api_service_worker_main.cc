@@ -156,7 +156,7 @@ void ServiceWorkerMain::OnDestroyed() {
   Unpin();
 }
 
-void ServiceWorkerMain::OnVersionUpdated() {
+void ServiceWorkerMain::OnRunningStatusChanged() {
   if (!service_worker_context_->IsLiveStartingServiceWorker(version_id_) &&
       !service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
     remote_.reset();
