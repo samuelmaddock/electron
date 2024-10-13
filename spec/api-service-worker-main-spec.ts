@@ -113,7 +113,7 @@ describe('ServiceWorkerMain module', () => {
   describe("'scope' property", () => {
     // TODO: ServiceWorkerMain is internally indexed by non-globally unique
     // version ID. need to fix this
-    it.skip('matches the expected value', async () => {
+    it('matches the expected value', async () => {
       const versionUpdated = once(serviceWorkers, 'version-updated');
       wc.loadURL(`${baseUrl}/index.html`);
       const [{ versionId }] = await versionUpdated;
