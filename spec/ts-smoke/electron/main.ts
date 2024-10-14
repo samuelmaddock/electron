@@ -1246,7 +1246,7 @@ session.defaultSession.setCertificateVerifyProc((request, callback) => {
 });
 
 session.defaultSession.setPermissionHandlers({
-  isGranted (permission, effectiveOrigin) {
+  isGranted ({ permission, effectiveOrigin }) {
     if (effectiveOrigin === 'https://github.com') {
       if (permission === 'notifications') {
         return { status: 'granted' };
@@ -1254,7 +1254,7 @@ session.defaultSession.setPermissionHandlers({
     }
     return { status: 'denied' };
   },
-  onRequest: async function (permission, effectiveOrigin) {
+  onRequest: async function ({ permission, effectiveOrigin }) {
     if (effectiveOrigin === 'https://github.com') {
       if (permission === 'notifications') {
         return { status: 'denied' };
