@@ -10,7 +10,7 @@ import * as path from 'node:path';
 import { listen } from './lib/spec-helpers';
 
 // Toggle to add extra debug output
-const DEBUG = false;
+const DEBUG = !process.env.CI;
 
 describe('ServiceWorkerMain module', () => {
   const fixtures = path.resolve(__dirname, 'fixtures');
@@ -62,6 +62,14 @@ describe('ServiceWorkerMain module', () => {
     ses.getPreloadScripts().map(({ id }) => ses.unregisterPreloadScript(id));
   });
 
+  function registerPreload (scriptName: string) {
+    ses.registerPreloadScript({
+      id: crypto.randomUUID(),
+      type: 'service-worker',
+      filePath: path.resolve(preloadRealmFixtures, scriptName)
+    });
+  }
+
   async function loadWorkerScript (scriptUrl?: string) {
     const scriptParams = scriptUrl ? `?scriptUrl=${scriptUrl}` : '';
     return wc.loadURL(`${baseUrl}/index.html${scriptParams}`);
@@ -104,9 +112,9 @@ describe('ServiceWorkerMain module', () => {
       const [{ versionId }] = await runningStatusChanged;
       const serviceWorker = serviceWorkers.fromVersionID(versionId);
       expect(serviceWorker).to.not.be.undefined();
-      expect(serviceWorkers._fromVersionIDIfExists(versionId)).to.not.be.undefined();
-      // eslint-disable-next-line no-unused-expressions
-      serviceWorker; // hold reference
+      const ifExistsServiceWorker = serviceWorkers._fromVersionIDIfExists(versionId);
+      expect(ifExistsServiceWorker).to.not.be.undefined();
+      expect(serviceWorker).to.equal(ifExistsServiceWorker);
     });
 
     it('should not crash on script error', async () => {
@@ -240,35 +248,51 @@ describe('ServiceWorkerMain module', () => {
   });
 
   describe('ipc', () => {
-    describe('sw -> main', () => {
-      it('receives a message', async () => {
-        ses.registerPreloadScript({
-          id: crypto.randomUUID(),
-          type: 'service-worker',
-          filePath: path.resolve(preloadRealmFixtures, 'preload-send-ping.js')
+    const runTest = async (serviceWorker: Electron.ServiceWorkerMain, rpc: { name: string, args: any[] }) => {
+      const uuid = crypto.randomUUID();
+      serviceWorker.send('test', uuid, rpc.name, ...rpc.args);
+      return new Promise((resolve, reject) => {
+        serviceWorker.ipc.once(`test-result-${uuid}`, (_event, { error, result }) => {
+          if (error) {
+            reject(result);
+          } else {
+            resolve(result);
+          }
         });
+      });
+    };
 
+    beforeEach(() => {
+      registerPreload('preload-tests.js');
+    });
+
+    describe('on(channel)', () => {
+      it('can receive a message during startup', async () => {
+        registerPreload('preload-send-ping.js');
         loadWorkerScript();
         const serviceWorker = await waitForServiceWorker();
         const pingPromise = once(serviceWorker.ipc, 'ping');
         await pingPromise;
       });
 
-      it('does not receive message on ipcMain', async () => {
-        ses.registerPreloadScript({
-          id: crypto.randomUUID(),
-          type: 'service-worker',
-          filePath: path.resolve(preloadRealmFixtures, 'preload-send-ping.js')
-        });
-
+      it('receives a message', async () => {
         loadWorkerScript();
-        await waitForServiceWorker();
+        const serviceWorker = await waitForServiceWorker('running');
+        const pingPromise = once(serviceWorker.ipc, 'ping');
+        runTest(serviceWorker, { name: 'testSend', args: ['ping'] });
+        await pingPromise;
+      });
+
+      it('does not receive message on ipcMain', async () => {
+        loadWorkerScript();
+        const serviceWorker = await waitForServiceWorker('running');
         const abortController = new AbortController();
         try {
           let pingReceived = false;
           once(ipcMain, 'ping', { signal: abortController.signal }).then(() => {
             pingReceived = true;
           });
+          runTest(serviceWorker, { name: 'testSend', args: ['ping'] });
           await once(ses, '-ipc-message');
           await new Promise<void>(queueMicrotask);
           expect(pingReceived).to.be.false();
@@ -276,6 +300,30 @@ describe('ServiceWorkerMain module', () => {
           abortController.abort();
         }
       });
+    });
+
+    describe('handle(channel)', () => {
+      it('receives and responds to message', async () => {
+        loadWorkerScript();
+        const serviceWorker = await waitForServiceWorker('running');
+        serviceWorker.ipc.handle('ping', () => 'pong');
+        const result = await runTest(serviceWorker, { name: 'testInvoke', args: ['ping'] });
+        expect(result).to.equal('pong');
+      });
+
+      it.skip('works after restarting worker', async () => {
+        // TODO
+      });
+    });
+  });
+
+  describe.skip('extensions', () => {
+    it('can observe extension service workers', async () => {
+      // TODO
+    });
+
+    it('has "chrome" global defined when running preload', async () => {
+      // TODO
     });
   });
 });
