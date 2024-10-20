@@ -127,6 +127,14 @@ void ServiceWorkerContext::OnRegistrationCompleted(const GURL& scope) {
        gin::DataObjectBuilder(isolate).Set("scope", scope).Build());
 }
 
+void ServiceWorkerContext::OnVersionRedundant(int64_t version_id,
+                                              const GURL& scope) {
+  ServiceWorkerMain* worker =
+      ServiceWorkerMain::FromVersionID(version_id, storage_partition_);
+  if (worker)
+    worker->OnVersionRedundant();
+}
+
 void ServiceWorkerContext::OnVersionStartingRunning(int64_t version_id) {
   OnRunningStatusChanged(version_id, blink::EmbeddedWorkerStatus::kStarting);
 }

@@ -104,6 +104,7 @@ class ServiceWorkerMain final
   ServiceWorkerMain& operator=(const ServiceWorkerMain&) = delete;
 
   void OnRunningStatusChanged();
+  void OnVersionRedundant();
 
  protected:
   explicit ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
@@ -112,6 +113,7 @@ class ServiceWorkerMain final
   ~ServiceWorkerMain() override;
 
  private:
+  void Destroy();
   const blink::StorageKey GetStorageKey();
 
   v8::Local<v8::Promise> StartWorker(v8::Isolate* isolate);
@@ -138,7 +140,6 @@ class ServiceWorkerMain final
 
   void InvalidateState();
   const content::ServiceWorkerRunningInfo* GetRunningInfo() const;
-  void OnDestroyed();
 
   bool IsDestroyed() const;
 

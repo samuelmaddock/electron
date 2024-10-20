@@ -7,7 +7,7 @@ import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as path from 'node:path';
 
-import { listen } from './lib/spec-helpers';
+import { listen, waitUntil } from './lib/spec-helpers';
 
 // Toggle to add extra debug output
 const DEBUG = !process.env.CI;
@@ -146,14 +146,12 @@ describe('ServiceWorkerMain module', () => {
       expect(serviceWorker.isDestroyed()).to.be.false();
     });
 
-    // TODO: hook into ServiceWorkerLive OnDestroyed
-    it.skip('is destroyed after being unregistered', async () => {
+    it('is destroyed after being unregistered', async () => {
       loadWorkerScript();
-      const stoppedServiceWorkerPromise = waitForServiceWorker('stopped');
       const serviceWorker = await waitForServiceWorker();
       expect(serviceWorker.isDestroyed()).to.be.false();
       await unregisterAllServiceWorkers();
-      await stoppedServiceWorkerPromise;
+      await waitUntil(() => serviceWorker.isDestroyed());
     });
   });
 
