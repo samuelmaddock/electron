@@ -57,6 +57,7 @@ class ServiceWorkerContext final
       const content::ServiceWorkerRunningInfo& running_info) override;
   void OnVersionStoppingRunning(int64_t version_id) override;
   void OnVersionStoppedRunning(int64_t version_id) override;
+  void OnVersionRedundant(int64_t version_id, const GURL& scope) override;
   void OnDestruct(content::ServiceWorkerContext* context) override;
 
   // gin::Wrappable

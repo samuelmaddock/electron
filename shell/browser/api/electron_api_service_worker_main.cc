@@ -75,7 +75,14 @@ ServiceWorkerMain::ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
 }
 
 ServiceWorkerMain::~ServiceWorkerMain() {
-  OnDestroyed();
+  Destroy();
+}
+
+void ServiceWorkerMain::Destroy() {
+  version_destroyed_ = true;
+  running_info_.reset();
+  GetVersionIdMap().erase(key_);
+  Unpin();
 }
 
 mojom::ElectronRenderer* ServiceWorkerMain::GetRendererApi() {
@@ -149,18 +156,17 @@ const content::ServiceWorkerRunningInfo* ServiceWorkerMain::GetRunningInfo()
   return nullptr;
 }
 
-void ServiceWorkerMain::OnDestroyed() {
-  version_destroyed_ = true;
-  running_info_.reset();
-  GetVersionIdMap().erase(key_);
-  Unpin();
-}
-
 void ServiceWorkerMain::OnRunningStatusChanged() {
   if (!service_worker_context_->IsLiveStartingServiceWorker(version_id_) &&
       !service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
     remote_.reset();
   }
+}
+
+void ServiceWorkerMain::OnVersionRedundant() {
+  // Redundant service workers have become either unregistered or replaced.
+  // A new ServiceWorkerMain will need to be created.
+  Destroy();
 }
 
 bool ServiceWorkerMain::IsDestroyed() const {
