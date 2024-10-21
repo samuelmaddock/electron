@@ -45,7 +45,8 @@ class Promise;
 
 namespace electron::api {
 
-// Key to uniquely identify a ServiceWorkerVersion within a StoragePartition.
+// Key to uniquely identify a ServiceWorkerMain by its Version ID within the
+// associated StoragePartition.
 struct ServiceWorkerKey {
   int64_t version_id;
   raw_ptr<const content::StoragePartition> storage_partition;
@@ -72,7 +73,13 @@ struct ServiceWorkerKey {
   };
 };
 
-// Wraps ServiceWorkerVersion instances
+// Creates a wrapper to align with the lifecycle of the non-public
+// content::ServiceWorkerVersion. Object instances are pinned for the lifetime
+// of the underlying SW such that registered IPC handlers continue to dispatch.
+//
+// Instances are uniquely identified by pairing their version ID and the
+// StoragePartition in which they're registered. In Electron, this is always
+// the default StoragePartition for the associated BrowserContext.
 class ServiceWorkerMain final
     : public gin::Wrappable<ServiceWorkerMain>,
       public gin_helper::EventEmitterMixin<ServiceWorkerMain>,
@@ -116,6 +123,7 @@ class ServiceWorkerMain final
   void Destroy();
   const blink::StorageKey GetStorageKey();
 
+  // Start the worker if not already running.
   v8::Local<v8::Promise> StartWorker(v8::Isolate* isolate);
   void DidStartWorkerForScope(gin_helper::Promise<void> promise,
                               base::Time start_time,
@@ -126,13 +134,16 @@ class ServiceWorkerMain final
                           base::Time start_time,
                           blink::ServiceWorkerStatusCode status_code);
 
+  // Increments external requests for the service worker to keep it alive.
   gin_helper::Dictionary StartExternalRequest(v8::Isolate* isolate,
                                               bool has_timeout);
   void FinishExternalRequest(v8::Isolate* isolate, std::string uuid);
   size_t CountExternalRequests();
 
+  // Get or create a Mojo connection to the renderer process.
   mojom::ElectronRenderer* GetRendererApi();
 
+  // Send a message to the renderer process.
   void Send(v8::Isolate* isolate,
             bool internal,
             const std::string& channel,
@@ -146,7 +157,10 @@ class ServiceWorkerMain final
   int64_t VersionID() const;
   GURL ScopeURL() const;
 
+  // Version ID unique only to the StoragePartition.
   int64_t version_id_;
+
+  // Unique identifier pairing the Version ID and StoragePartition.
   ServiceWorkerKey key_;
 
   // Whether the Service Worker version has been destroyed.
@@ -154,9 +168,7 @@ class ServiceWorkerMain final
 
   // Store copy of running info when a live version isn't available
   std::unique_ptr<content::ServiceWorkerRunningInfo> running_info_;
-
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
-
   mojo::AssociatedRemote<mojom::ElectronRenderer> remote_;
 
   base::WeakPtrFactory<ServiceWorkerMain> weak_factory_{this};
