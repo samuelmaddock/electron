@@ -189,11 +189,6 @@ v8::Local<v8::Value> ServiceWorkerContext::GetWorkerInfoFromID(
 v8::Local<v8::Value> ServiceWorkerContext::FromVersionID(
     gin_helper::ErrorThrower thrower,
     int64_t version_id) {
-  if (!service_worker_context_->IsLiveStartingServiceWorker(version_id) &&
-      !service_worker_context_->IsLiveRunningServiceWorker(version_id)) {
-    return v8::Undefined(thrower.isolate());
-  }
-
   return ServiceWorkerMain::From(thrower.isolate(), service_worker_context_,
                                  storage_partition_, version_id)
       .ToV8();

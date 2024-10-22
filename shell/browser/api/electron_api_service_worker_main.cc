@@ -12,9 +12,7 @@
 #include "base/logging.h"
 #include "base/no_destructor.h"
 #include "content/browser/service_worker/service_worker_context_wrapper.h"  // nogncheck
-#include "content/browser/service_worker/service_worker_host.h"     // nogncheck
 #include "content/browser/service_worker/service_worker_version.h"  // nogncheck
-#include "content/public/browser/service_worker_running_info.h"
 #include "electron/shell/common/api/api.mojom.h"
 #include "gin/handle.h"
 #include "gin/object_template_builder.h"
@@ -31,6 +29,28 @@
 #include "shell/common/gin_helper/promise.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/v8_value_serializer.h"
+
+namespace {
+
+content::ServiceWorkerVersion* GetLiveVersion(
+    content::ServiceWorkerContext* service_worker_context,
+    int64_t version_id) {
+  auto* wrapper = static_cast<content::ServiceWorkerContextWrapper*>(
+      service_worker_context);
+  return wrapper->GetLiveVersion(version_id);
+}
+
+std::optional<content::ServiceWorkerVersionBaseInfo> GetLiveVersionInfo(
+    content::ServiceWorkerContext* service_worker_context,
+    int64_t version_id) {
+  auto* version = GetLiveVersion(service_worker_context, version_id);
+  if (version) {
+    return version->GetInfo();
+  }
+  return std::nullopt;
+}
+
+}  // namespace
 
 namespace electron::api {
 
@@ -71,7 +91,7 @@ ServiceWorkerMain::ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
          service_worker_context_->IsLiveRunningServiceWorker(version_id));
 
   GetVersionIdMap().emplace(key_, this);
-  InvalidateRunningInfo();
+  InvalidateVersionInfo();
 }
 
 ServiceWorkerMain::~ServiceWorkerMain() {
@@ -80,7 +100,7 @@ ServiceWorkerMain::~ServiceWorkerMain() {
 
 void ServiceWorkerMain::Destroy() {
   version_destroyed_ = true;
-  InvalidateRunningInfo();
+  InvalidateVersionInfo();
   GetVersionIdMap().erase(key_);
   Unpin();
 }
@@ -116,45 +136,22 @@ void ServiceWorkerMain::Send(v8::Isolate* isolate,
   renderer_api_remote->Message(internal, channel, std::move(message));
 }
 
-void ServiceWorkerMain::InvalidateRunningInfo() {
-  if (running_info_ != nullptr) {
-    running_info_.reset();
+void ServiceWorkerMain::InvalidateVersionInfo() {
+  if (version_info_ != nullptr) {
+    version_info_.reset();
   }
 
   if (version_destroyed_)
     return;
 
-  if (service_worker_context_->IsLiveRunningServiceWorker(version_id_)) {
-    // Lookup public running info
-    auto& running_service_workers =
-        service_worker_context_->GetRunningServiceWorkerInfos();
-    auto it = running_service_workers.find(version_id_);
-    CHECK(it != running_service_workers.end());
-    running_info_ =
-        std::make_unique<content::ServiceWorkerRunningInfo>(it->second);
-  } else {
-    // Workers which are starting, stopping, or stopped have inaccessible state
-    // using public APIs. Rely on private APIs to create our own running info.
-    auto* wrapper = static_cast<content::ServiceWorkerContextWrapper*>(
-        service_worker_context_);
-    content::ServiceWorkerVersion* version =
-        wrapper->GetLiveVersion(version_id_);
-    CHECK(version);
-
-    content::ServiceWorkerRunningInfo::ServiceWorkerVersionStatus
-        version_status = content::ServiceWorkerRunningInfo::
-            ServiceWorkerVersionStatus::kUnknown;
-    content::ServiceWorkerVersionBaseInfo version_info = version->GetInfo();
-    // TODO: worker_host() may be nullptr
-    running_info_ = std::make_unique<content::ServiceWorkerRunningInfo>(
-        version->script_url(), version_info.scope, version_info.storage_key,
-        version_info.process_id, version->worker_host()->token(),
-        version_status);
-  }
+  auto version_info = GetLiveVersionInfo(service_worker_context_, version_id_);
+  CHECK(version_info);
+  version_info_ =
+      std::make_unique<content::ServiceWorkerVersionBaseInfo>(*version_info);
 }
 
 void ServiceWorkerMain::OnRunningStatusChanged() {
-  InvalidateRunningInfo();
+  InvalidateVersionInfo();
 
   // Disconnect remote when content::ServiceWorkerHost has terminated.
   if (remote_.is_bound() &&
@@ -175,7 +172,7 @@ bool ServiceWorkerMain::IsDestroyed() const {
 }
 
 const blink::StorageKey ServiceWorkerMain::GetStorageKey() {
-  GURL scope = running_info()->scope;
+  GURL scope = version_info()->scope;
   return blink::StorageKey::CreateFirstParty(url::Origin::Create(scope));
 }
 
@@ -257,7 +254,7 @@ int64_t ServiceWorkerMain::VersionID() const {
 GURL ServiceWorkerMain::ScopeURL() const {
   if (version_destroyed_)
     return GURL::EmptyGURL();
-  return running_info()->scope;
+  return version_info()->scope;
 }
 
 // static
@@ -276,6 +273,12 @@ gin::Handle<ServiceWorkerMain> ServiceWorkerMain::From(
   auto* service_worker = FromServiceWorkerKey(service_worker_key);
   if (service_worker)
     return gin::CreateHandle(isolate, service_worker);
+
+  // TODO: should allow creation as long as live version exists
+  if (!sw_context->IsLiveStartingServiceWorker(version_id) &&
+      !sw_context->IsLiveRunningServiceWorker(version_id)) {
+    return gin::Handle<ServiceWorkerMain>();
+  }
 
   auto handle = gin::CreateHandle(
       isolate,
