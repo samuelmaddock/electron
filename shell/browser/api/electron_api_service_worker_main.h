@@ -149,8 +149,10 @@ class ServiceWorkerMain final
             const std::string& channel,
             v8::Local<v8::Value> args);
 
-  void InvalidateState();
-  const content::ServiceWorkerRunningInfo* GetRunningInfo() const;
+  void InvalidateRunningInfo();
+  const content::ServiceWorkerRunningInfo* running_info() const {
+    return running_info_.get();
+  }
 
   bool IsDestroyed() const;
 
