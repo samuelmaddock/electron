@@ -14,6 +14,7 @@
 #include "base/process/process.h"
 #include "content/public/browser/global_routing_id.h"
 #include "content/public/browser/service_worker_context.h"
+#include "content/public/browser/service_worker_version_base_info.h"
 #include "gin/wrappable.h"
 #include "mojo/public/cpp/bindings/associated_receiver.h"
 #include "mojo/public/cpp/bindings/associated_remote.h"
@@ -149,9 +150,9 @@ class ServiceWorkerMain final
             const std::string& channel,
             v8::Local<v8::Value> args);
 
-  void InvalidateRunningInfo();
-  const content::ServiceWorkerRunningInfo* running_info() const {
-    return running_info_.get();
+  void InvalidateVersionInfo();
+  const content::ServiceWorkerVersionBaseInfo* version_info() const {
+    return version_info_.get();
   }
 
   bool IsDestroyed() const;
@@ -168,8 +169,9 @@ class ServiceWorkerMain final
   // Whether the Service Worker version has been destroyed.
   bool version_destroyed_ = false;
 
-  // Store copy of running info when a live version isn't available
-  std::unique_ptr<content::ServiceWorkerRunningInfo> running_info_;
+  // Store copy of version info so it's accessible when not running.
+  std::unique_ptr<content::ServiceWorkerVersionBaseInfo> version_info_;
+
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
   mojo::AssociatedRemote<mojom::ElectronRenderer> remote_;
 

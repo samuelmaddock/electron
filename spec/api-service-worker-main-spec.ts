@@ -219,6 +219,10 @@ describe('ServiceWorkerMain module', () => {
       await new Promise<void>(queueMicrotask);
       expect(serviceWorker._countExternalRequests()).to.equal(0);
     });
+
+    it.skip('can stop task after destroyed', async () => {
+      // TODO
+    });
   });
 
   describe("'versionId' property", () => {
