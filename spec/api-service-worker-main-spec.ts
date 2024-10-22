@@ -220,8 +220,21 @@ describe('ServiceWorkerMain module', () => {
       expect(serviceWorker._countExternalRequests()).to.equal(0);
     });
 
-    it.skip('can stop task after destroyed', async () => {
-      // TODO
+    it('throws when starting task after destroyed', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker();
+      await unregisterAllServiceWorkers();
+      await waitUntil(() => serviceWorker.isDestroyed());
+      expect(() => serviceWorker.startTask()).to.throw();
+    });
+
+    it('throws when ending task after destroyed', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker();
+      const task = serviceWorker.startTask();
+      await unregisterAllServiceWorkers();
+      await waitUntil(() => serviceWorker.isDestroyed());
+      expect(() => task.end()).to.throw();
     });
   });
 

@@ -32,6 +32,8 @@
 
 namespace {
 
+// Use private API to get the live version of the service worker. This will
+// exist while in starting, stopping, or stopped running status.
 content::ServiceWorkerVersion* GetLiveVersion(
     content::ServiceWorkerContext* service_worker_context,
     int64_t version_id) {
@@ -40,6 +42,8 @@ content::ServiceWorkerVersion* GetLiveVersion(
   return wrapper->GetLiveVersion(version_id);
 }
 
+// Get a public ServiceWorkerVersionBaseInfo object directly from the service
+// worker.
 std::optional<content::ServiceWorkerVersionBaseInfo> GetLiveVersionInfo(
     content::ServiceWorkerContext* service_worker_context,
     int64_t version_id) {
@@ -211,6 +215,14 @@ void ServiceWorkerMain::DidStartWorkerFail(
 gin_helper::Dictionary ServiceWorkerMain::StartExternalRequest(
     v8::Isolate* isolate,
     bool has_timeout) {
+  auto details = gin_helper::Dictionary::CreateEmpty(isolate);
+
+  if (version_destroyed_) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        gin::StringToV8(isolate, "ServiceWorkerMain is destroyed")));
+    return details;
+  }
+
   auto request_uuid = base::Uuid::GenerateRandomV4();
   auto timeout_type =
       has_timeout
@@ -221,7 +233,6 @@ gin_helper::Dictionary ServiceWorkerMain::StartExternalRequest(
       service_worker_context_->StartingExternalRequest(
           version_id_, timeout_type, request_uuid);
 
-  auto details = gin_helper::Dictionary::CreateEmpty(isolate);
   details.Set("id", request_uuid.AsLowercaseString());
   details.Set("ok",
               start_result == content::ServiceWorkerExternalRequestResult::kOk);
@@ -231,6 +242,12 @@ gin_helper::Dictionary ServiceWorkerMain::StartExternalRequest(
 
 void ServiceWorkerMain::FinishExternalRequest(v8::Isolate* isolate,
                                               std::string uuid) {
+  if (version_destroyed_) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        gin::StringToV8(isolate, "ServiceWorkerMain is destroyed")));
+    return;
+  }
+
   base::Uuid request_uuid = base::Uuid::ParseLowercase(uuid);
   if (!request_uuid.is_valid()) {
     isolate->ThrowException(v8::Exception::TypeError(

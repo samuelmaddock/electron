@@ -27,25 +27,12 @@ ServiceWorkerMain.prototype.startTask = function () {
   const hasTimeout = false;
   const { id, ok } = this._startExternalRequest(hasTimeout);
 
-  // TODO(samuelmaddock): refactor to use Promise.withResolvers after upgrading
-  // types.
-  let onResolve: Function;
-  let onReject: Function;
-  const promise = new Promise<void>((resolve, reject) => {
-    onResolve = resolve;
-    onReject = reject;
-
-    if (!ok) {
-      onReject(new Error('Unable to start service worker task.'));
-    }
-  });
-
-  promise.finally(() => {
-    this._finishExternalRequest(id);
-  });
+  if (!ok) {
+    throw new Error('Unable to start service worker task.');
+  }
 
   return {
-    end () { onResolve(); }
+    end: () => this._finishExternalRequest(id)
   };
 };
 
