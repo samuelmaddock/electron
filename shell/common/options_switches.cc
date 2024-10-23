@@ -233,6 +233,9 @@ const char kScrollBounce[] = "scroll-bounce";
 // Command switch passed to renderer process to control nodeIntegration.
 const char kNodeIntegrationInWorker[] = "node-integration-in-worker";
 
+// Indicates that preloads for service workers are registered.
+const char kServiceWorkerPreload[] = "service-worker-preload";
+
 // Widevine options
 // Path to Widevine CDM binaries.
 const char kWidevineCdmPath[] = "widevine-cdm-path";

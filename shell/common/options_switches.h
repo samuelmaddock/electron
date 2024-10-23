@@ -116,6 +116,7 @@ extern const char kAppPath[];
 
 extern const char kScrollBounce[];
 extern const char kNodeIntegrationInWorker[];
+extern const char kServiceWorkerPreload[];
 
 extern const char kWidevineCdmPath[];
 extern const char kWidevineCdmVersion[];

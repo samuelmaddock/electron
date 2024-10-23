@@ -242,7 +242,11 @@ void ElectronSandboxedRendererClient::WillEvaluateServiceWorkerOnWorkerThread(
   RendererClientBase::WillEvaluateServiceWorkerOnWorkerThread(
       context_proxy, v8_context, service_worker_version_id,
       service_worker_scope, script_url, service_worker_token);
-  preload_realm::OnCreatePreloadableV8Context(v8_context, context_proxy);
+
+  auto* command_line = base::CommandLine::ForCurrentProcess();
+  if (command_line->HasSwitch(switches::kServiceWorkerPreload)) {
+    preload_realm::OnCreatePreloadableV8Context(v8_context, context_proxy);
+  }
 }
 
 }  // namespace electron
