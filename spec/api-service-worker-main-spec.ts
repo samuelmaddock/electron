@@ -134,8 +134,14 @@ describe('ServiceWorkerMain module', () => {
       expect(serviceWorker).to.not.be.undefined();
     });
 
-    it.skip('does not find unregistered service worker', async () => {
-      // TODO: register, lookup, unregister, lookup
+    it('does not find unregistered service worker', async () => {
+      loadWorkerScript();
+      const runningServiceWorker = await waitForServiceWorker('running');
+      const { versionId } = runningServiceWorker;
+      unregisterAllServiceWorkers();
+      await waitUntil(() => runningServiceWorker.isDestroyed());
+      const serviceWorker = serviceWorkers.fromVersionID(versionId);
+      expect(serviceWorker).to.be.undefined();
     });
   });
 
@@ -163,16 +169,30 @@ describe('ServiceWorkerMain module', () => {
       await expect(startWorkerPromise).to.eventually.be.fulfilled();
     });
 
-    // TODO: crashes
-    it.skip('resolves with starting workers', async () => {
+    it('rejects with starting workers', async () => {
       loadWorkerScript();
       const serviceWorker = await waitForServiceWorker('starting');
+      const startWorkerPromise = serviceWorker.startWorker();
+      await expect(startWorkerPromise).to.eventually.be.rejected();
+    });
+
+    it('starts previously stopped worker', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker('running');
+      const stoppedPromise = waitForServiceWorker('stopped');
+      serviceWorker._stopWorker();
+      await stoppedPromise;
       const startWorkerPromise = serviceWorker.startWorker();
       await expect(startWorkerPromise).to.eventually.be.fulfilled();
     });
 
-    it.skip('starts previously stopped worker', () => {
-      // TODO
+    it('resolves when called twice', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker('running');
+      await Promise.all([
+        serviceWorker.startWorker(),
+        serviceWorker.startWorker()
+      ]);
     });
   });
 
@@ -326,8 +346,14 @@ describe('ServiceWorkerMain module', () => {
         expect(result).to.equal('pong');
       });
 
-      it.skip('works after restarting worker', async () => {
-        // TODO
+      it('works after restarting worker', async () => {
+        loadWorkerScript();
+        const serviceWorker = await waitForServiceWorker('running');
+        serviceWorker.ipc.handle('ping', () => 'pong');
+        serviceWorker._stopWorker();
+        await serviceWorker.startWorker();
+        const result = await runTest(serviceWorker, { name: 'testInvoke', args: ['ping'] });
+        expect(result).to.equal('pong');
       });
     });
   });
