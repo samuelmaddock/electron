@@ -332,13 +332,36 @@ describe('ServiceWorkerMain module', () => {
     });
   });
 
-  describe.skip('extensions', () => {
-    it('can observe extension service workers', async () => {
-      // TODO
+  describe('extensions', () => {
+    const extensionFixtures = path.join(fixtures, 'extensions');
+    const testExtensionFixture = path.join(extensionFixtures, 'mv3-service-worker');
+
+    beforeEach(async () => {
+      ses = session.fromPartition(`persist:${crypto.randomUUID()}-service-worker-main-spec`);
+      serviceWorkers = ses.serviceWorkers;
     });
 
-    it('has "chrome" global defined when running preload', async () => {
-      // TODO
+    it('can observe extension service workers', async () => {
+      const serviceWorkerPromise = waitForServiceWorker();
+      const extension = await ses.loadExtension(testExtensionFixture);
+      const serviceWorker = await serviceWorkerPromise;
+      expect(serviceWorker.scope).to.equal(extension.url);
+    });
+
+    it('has extension state available when preload runs', async () => {
+      registerPreload('preload-send-extension.js');
+      const serviceWorkerPromise = waitForServiceWorker();
+      const extensionPromise = ses.loadExtension(testExtensionFixture);
+      const serviceWorker = await serviceWorkerPromise;
+      const result = await new Promise<any>((resolve) => {
+        serviceWorker.ipc.handleOnce('preload-extension-result', (_event, result) => {
+          resolve(result);
+        });
+      });
+      const extension = await extensionPromise;
+      expect(result).to.be.an('object');
+      expect(result.id).to.equal(extension.id);
+      expect(result.manifest).to.deep.equal(result.manifest);
     });
   });
 });
