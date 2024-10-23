@@ -284,11 +284,11 @@ declare namespace ElectronInternal {
     invoke<T>(channel: string, ...args: any[]): Promise<T>;
   }
 
-  interface IpcMainInternalEvent extends Omit<Electron.IpcMainEvent, 'reply'> {
-  }
+  type IpcMainInternalEvent = Omit<Electron.IpcMainEvent, 'reply'> | Omit<Electron.IpcMainServiceWorkerEvent, 'reply'>;
+  type IpcMainInternalInvokeEvent = Electron.IpcMainInvokeEvent | Electron.IpcMainServiceWorkerInvokeEvent;
 
   interface IpcMainInternal extends NodeJS.EventEmitter {
-    handle(channel: string, listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => Promise<any> | any): void;
+    handle(channel: string, listener: (event: IpcMainInternalInvokeEvent, ...args: any[]) => Promise<any> | any): void;
     on(channel: string, listener: (event: IpcMainInternalEvent, ...args: any[]) => void): this;
     once(channel: string, listener: (event: IpcMainInternalEvent, ...args: any[]) => void): this;
   }
