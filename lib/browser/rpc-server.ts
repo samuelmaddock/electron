@@ -8,6 +8,8 @@ import * as fs from 'fs';
 
 // Implements window.close()
 ipcMainInternal.on(IPC_MESSAGES.BROWSER_WINDOW_CLOSE, function (event) {
+  if (event.type !== 'frame') return;
+
   const window = event.sender.getOwnerBrowserWindow();
   if (window) {
     window.close();
@@ -16,10 +18,12 @@ ipcMainInternal.on(IPC_MESSAGES.BROWSER_WINDOW_CLOSE, function (event) {
 });
 
 ipcMainInternal.handle(IPC_MESSAGES.BROWSER_GET_LAST_WEB_PREFERENCES, function (event) {
+  if (event.type !== 'frame') return;
   return event.sender.getLastWebPreferences();
 });
 
 ipcMainInternal.handle(IPC_MESSAGES.BROWSER_GET_PROCESS_MEMORY_INFO, function (event) {
+  if (event.type !== 'frame') return;
   return event.sender._getProcessMemoryInfo();
 });
 
@@ -44,14 +48,14 @@ ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_CLIPBOARD_SYNC, function (event, me
 });
 
 const getPreloadScriptsFromEvent = (event: ElectronInternal.IpcMainInternalEvent) => {
-  const session: Electron.Session = (event as any).type === 'service-worker' ? (event as any).session : event.sender.session;
+  const session: Electron.Session = event.type === 'service-worker' ? event.session : event.sender.session;
   let preloadScripts = session.getPreloadScripts();
 
-  if (event.sender) {
+  if (event.type === 'frame') {
     preloadScripts = preloadScripts.filter(script => script.type === 'frame');
     const preload = event.sender._getPreloadScript();
     if (preload) preloadScripts.push(preload);
-  } else if ((event as any).type === 'service-worker') {
+  } else if (event.type === 'service-worker') {
     preloadScripts = preloadScripts.filter(script => script.type === 'service-worker');
   }
 
@@ -96,5 +100,6 @@ ipcMainUtils.handleSync(IPC_MESSAGES.BROWSER_NONSANDBOX_LOAD, function (event) {
 });
 
 ipcMainInternal.on(IPC_MESSAGES.BROWSER_PRELOAD_ERROR, function (event, preloadPath: string, error: Error) {
+  if (event.type !== 'frame') return;
   event.sender?.emit('preload-error', event, preloadPath, error);
 });
