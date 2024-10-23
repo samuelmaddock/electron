@@ -96,7 +96,7 @@ A `string` representing the scope URL of the service worker.
 
 #### `serviceWorker.versionId` _Readonly_ _Experimental_
 
-A `string` representing the ID of the specific version of the service worker script in its scope.
+A `number` representing the ID of the specific version of the service worker script in its scope.
 
 [SCA]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
 [`postMessage`]: https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage

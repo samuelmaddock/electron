@@ -126,14 +126,12 @@ class ServiceWorkerMain final
 
   // Start the worker if not already running.
   v8::Local<v8::Promise> StartWorker(v8::Isolate* isolate);
-  void DidStartWorkerForScope(gin_helper::Promise<void> promise,
-                              base::Time start_time,
-                              int64_t version_id,
+  void DidStartWorkerForScope(int64_t version_id,
                               int process_id,
                               int thread_id);
-  void DidStartWorkerFail(gin_helper::Promise<void> promise,
-                          base::Time start_time,
-                          blink::ServiceWorkerStatusCode status_code);
+  void DidStartWorkerFail(blink::ServiceWorkerStatusCode status_code);
+
+  void StopWorker();
 
   // Increments external requests for the service worker to keep it alive.
   gin_helper::Dictionary StartExternalRequest(v8::Isolate* isolate,
@@ -174,6 +172,8 @@ class ServiceWorkerMain final
 
   raw_ptr<content::ServiceWorkerContext> service_worker_context_;
   mojo::AssociatedRemote<mojom::ElectronRenderer> remote_;
+
+  std::unique_ptr<gin_helper::Promise<void>> start_worker_promise_;
 
   base::WeakPtrFactory<ServiceWorkerMain> weak_factory_{this};
 };
