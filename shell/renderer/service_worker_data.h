@@ -56,7 +56,6 @@ class ServiceWorkerData : public mojom::ElectronRenderer {
   raw_ptr<v8::Isolate> isolate_;
   v8::Global<v8::Context> v8_context_;
 
-  // mojo::PendingReceiver<mojom::ElectronRenderer> pending_receiver_;
   mojo::AssociatedReceiver<mojom::ElectronRenderer> receiver_{this};
 
   base::WeakPtrFactory<ServiceWorkerData> weak_ptr_factory_{this};
