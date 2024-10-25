@@ -466,10 +466,13 @@ class ChunkedDataPipeReadableStream final
   }
 
   void OnReadCompleted(int result) {
-    if (result < 0)
+    DCHECK(promise_);
+    if (result < 0) {
       std::move(*promise_).RejectWithErrorMessage(net::ErrorToString(result));
-    else
+    } else {
       std::move(*promise_).Resolve(result);
+    }
+    promise_.reset();
   }
 
   void OnDataPipeGetterClosed() {
