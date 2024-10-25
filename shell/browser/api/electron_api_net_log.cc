@@ -183,6 +183,7 @@ void NetLog::NetLogStarted(int32_t error) {
 void NetLog::OnConnectionError() {
   net_log_exporter_.reset();
   if (pending_start_promise_) {
+    DCHECK(pending_start_promise_->isolate() != nullptr);
     std::move(*pending_start_promise_)
         .RejectWithErrorMessage("Failed to start net log exporter");
   }
