@@ -1,8 +1,8 @@
-import * as events from 'events';
 import { IPC_MESSAGES } from '@electron/internal/common/ipc-messages';
+import type * as ipcRendererUtilsModule from '@electron/internal/renderer/ipc-renderer-internal-utils';
 import { createPreloadProcessObject, executeSandboxedPreloadScripts } from '@electron/internal/sandboxed_renderer/preload';
 
-import type * as ipcRendererUtilsModule from '@electron/internal/renderer/ipc-renderer-internal-utils';
+import * as events from 'events';
 
 declare const binding: {
   get: (name: string) => any;
@@ -47,8 +47,6 @@ const loadedModules = new Map<string, any>([
 ]);
 
 const loadableModules = new Map<string, Function>([
-  // ['timers', () => require('timers')],
-  // ['node:timers', () => require('timers')],
   ['url', () => require('url')],
   ['node:url', () => require('url')]
 ]);
