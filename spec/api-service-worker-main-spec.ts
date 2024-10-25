@@ -57,7 +57,7 @@ describe('ServiceWorkerMain module', () => {
   });
 
   afterEach(async () => {
-    wc.destroy();
+    if (!wc.isDestroyed()) wc.destroy();
     server.close();
     ses.getPreloadScripts().map(({ id }) => ses.unregisterPreloadScript(id));
   });
@@ -117,7 +117,7 @@ describe('ServiceWorkerMain module', () => {
       expect(serviceWorker).to.equal(ifExistsServiceWorker);
     });
 
-    it('should not crash on script error', async () => {
+    it('does not crash on script error', async () => {
       wc.loadURL(`${baseUrl}/index.html?scriptUrl=sw-script-error.js`);
       let serviceWorker;
       const actualStatuses = [];
@@ -158,6 +158,17 @@ describe('ServiceWorkerMain module', () => {
       expect(serviceWorker.isDestroyed()).to.be.false();
       await unregisterAllServiceWorkers();
       await waitUntil(() => serviceWorker.isDestroyed());
+    });
+  });
+
+  describe('"running-status-changed" event', () => {
+    // TODO(samuelmaddock): crash with version_info not valid
+    it.skip('does not crash on simultaneous destruction', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker('running');
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      serviceWorker?._stopWorker();
+      wc.destroy();
     });
   });
 
