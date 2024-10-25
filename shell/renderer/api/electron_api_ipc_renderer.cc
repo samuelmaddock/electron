@@ -6,6 +6,7 @@
 
 #include "content/public/renderer/render_frame.h"
 #include "content/public/renderer/render_frame_observer.h"
+#include "content/public/renderer/worker_thread.h"
 #include "gin/dictionary.h"
 #include "gin/handle.h"
 #include "gin/object_template_builder.h"
@@ -44,7 +45,16 @@ RenderFrame* GetCurrentRenderFrame() {
   return RenderFrame::FromWebFrame(frame);
 }
 
+// Thread identifier for the main renderer thread (as opposed to a service
+// worker thread).
+inline constexpr int kMainThreadId = 0;
+
+bool IsWorkerThread() {
+  return content::WorkerThread::GetCurrentId() != kMainThreadId;
+}
+
 class IPCRenderer final : public gin::Wrappable<IPCRenderer>,
+                          public content::WorkerThread::Observer,
                           private content::RenderFrameObserver {
  public:
   static gin::WrapperInfo kWrapperInfo;
@@ -65,6 +75,9 @@ class IPCRenderer final : public gin::Wrappable<IPCRenderer>,
       render_frame->GetRemoteAssociatedInterfaces()->GetInterface(
           &electron_ipc_remote_);
     } else if (execution_context->IsShadowRealmGlobalScope()) {
+      DCHECK(IsWorkerThread());
+      content::WorkerThread::AddObserver(this);
+
       electron::ServiceWorkerData* service_worker_data =
           electron::preload_realm::GetServiceWorkerData(context);
       DCHECK(service_worker_data);
@@ -85,9 +98,11 @@ class IPCRenderer final : public gin::Wrappable<IPCRenderer>,
                                 int32_t world_id) override {
     if (weak_context_.IsEmpty() ||
         weak_context_.Get(context->GetIsolate()) == context) {
-      electron_ipc_remote_.reset();
+      OnDestruct();
     }
   }
+
+  void WillStopCurrentWorkerThread() override { OnDestruct(); }
 
   // gin::Wrappable:
   gin::ObjectTemplateBuilder GetObjectTemplateBuilder(
