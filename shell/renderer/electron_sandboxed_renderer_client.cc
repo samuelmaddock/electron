@@ -254,7 +254,8 @@ void ElectronSandboxedRendererClient::WillEvaluateServiceWorkerOnWorkerThread(
           context_proxy, service_worker_version_id, v8_context);
     }
 
-    preload_realm::OnCreatePreloadableV8Context(v8_context, context_proxy);
+    preload_realm::OnCreatePreloadableV8Context(v8_context,
+                                                service_worker_data);
   }
 }
 

@@ -21,6 +21,7 @@
 #include "shell/common/node_includes.h"
 #include "shell/common/v8_util.h"
 #include "shell/renderer/preload_realm_context.h"
+#include "shell/renderer/service_worker_data.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_provider.h"
 #include "third_party/blink/public/web/modules/service_worker/web_service_worker_context_proxy.h"
 #include "third_party/blink/public/web/web_local_frame.h"
@@ -43,8 +44,8 @@ RenderFrame* GetCurrentRenderFrame() {
   return RenderFrame::FromWebFrame(frame);
 }
 
-class IPCRenderer final : public gin::Wrappable<IPCRenderer> {
-  // private content::RenderFrameObserver {
+class IPCRenderer final : public gin::Wrappable<IPCRenderer>,
+                          private content::RenderFrameObserver {
  public:
   static gin::WrapperInfo kWrapperInfo;
 
@@ -52,7 +53,8 @@ class IPCRenderer final : public gin::Wrappable<IPCRenderer> {
     return gin::CreateHandle(isolate, new IPCRenderer(isolate));
   }
 
-  explicit IPCRenderer(v8::Isolate* isolate) {
+  explicit IPCRenderer(v8::Isolate* isolate)
+      : content::RenderFrameObserver(GetCurrentRenderFrame()) {
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
     blink::ExecutionContext* execution_context =
         blink::ExecutionContext::From(context);
@@ -63,33 +65,29 @@ class IPCRenderer final : public gin::Wrappable<IPCRenderer> {
       render_frame->GetRemoteAssociatedInterfaces()->GetInterface(
           &electron_ipc_remote_);
     } else if (execution_context->IsShadowRealmGlobalScope()) {
-      blink::WebServiceWorkerContextProxy* proxy =
-          electron::preload_realm::GetServiceWorkerProxy(context);
-      DCHECK(proxy);
-      proxy->GetRemoteAssociatedInterface(
+      electron::ServiceWorkerData* service_worker_data =
+          electron::preload_realm::GetServiceWorkerData(context);
+      DCHECK(service_worker_data);
+      service_worker_data->proxy()->GetRemoteAssociatedInterface(
           electron_ipc_remote_.BindNewEndpointAndPassReceiver());
     } else {
       NOTREACHED();
     }
-
-    // RenderFrame* render_frame = GetCurrentRenderFrame();
-    // if (render_frame) {
-    //   content::RenderFrameObserver(render_frame);
-    // }
 
     weak_context_ =
         v8::Global<v8::Context>(isolate, isolate->GetCurrentContext());
     weak_context_.SetWeak();
   }
 
-  // void OnDestruct() override { electron_ipc_remote_.reset(); }
+  void OnDestruct() override { electron_ipc_remote_.reset(); }
 
-  // void WillReleaseScriptContext(v8::Local<v8::Context> context,
-  //                               int32_t world_id) override {
-  //   if (weak_context_.IsEmpty() ||
-  //       weak_context_.Get(context->GetIsolate()) == context)
-  //     electron_ipc_remote_.reset();
-  // }
+  void WillReleaseScriptContext(v8::Local<v8::Context> context,
+                                int32_t world_id) override {
+    if (weak_context_.IsEmpty() ||
+        weak_context_.Get(context->GetIsolate()) == context) {
+      electron_ipc_remote_.reset();
+    }
+  }
 
   // gin::Wrappable:
   gin::ObjectTemplateBuilder GetObjectTemplateBuilder(

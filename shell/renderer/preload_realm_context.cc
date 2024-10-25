@@ -16,6 +16,7 @@
 #include "shell/common/node_bindings.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/node_util.h"
+#include "shell/renderer/service_worker_data.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_controller.h"  // nogncheck
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"  // nogncheck
 #include "third_party/blink/renderer/core/inspector/worker_thread_debugger.h"  // nogncheck
@@ -108,13 +109,13 @@ class PreloadRealmLifetimeController
       blink::ScriptState* initiator_script_state,
       blink::ShadowRealmGlobalScope* shadow_realm_global_scope,
       blink::ScriptState* shadow_realm_script_state,
-      blink::WebServiceWorkerContextProxy* proxy)
+      electron::ServiceWorkerData* service_worker_data)
       : initiator_script_state_(initiator_script_state),
         is_initiator_worker_or_worklet_(
             initiator_execution_context->IsWorkerOrWorkletGlobalScope()),
         shadow_realm_global_scope_(shadow_realm_global_scope),
         shadow_realm_script_state_(shadow_realm_script_state),
-        proxy_(proxy) {
+        service_worker_data_(service_worker_data) {
     // Align lifetime of this controller to that of the initiator's context.
     self_ = this;
 
@@ -130,7 +131,6 @@ class PreloadRealmLifetimeController
     RunInitScript();
   }
 
-  // TODO(samuelmaddock): lookup via service_worker_version_id instead?
   static PreloadRealmLifetimeController* From(v8::Local<v8::Context> context) {
     if (context->GetNumberOfEmbedderDataFields() <=
         kElectronContextEmbedderDataIndex) {
@@ -162,15 +162,17 @@ class PreloadRealmLifetimeController
                : v8::MaybeLocal<v8::Context>();
   }
 
-  blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy() {
-    return proxy_;
+  electron::ServiceWorkerData* service_worker_data() {
+    return service_worker_data_;
   }
 
  protected:
   void ContextDestroyed() override {
-    v8::HandleScope handle_scope(shadow_realm_script_state_->GetIsolate());
+    v8::HandleScope handle_scope(realm_isolate());
     realm_context()->SetAlignedPointerInEmbedderData(
         kElectronContextEmbedderDataIndex, nullptr);
+
+    // See ShadowRealmGlobalScope::ContextDestroyed
     shadow_realm_script_state_->DisposePerContextData();
     if (is_initiator_worker_or_worklet_) {
       shadow_realm_script_state_->DissociateContext();
@@ -178,6 +180,7 @@ class PreloadRealmLifetimeController
     shadow_realm_script_state_.Clear();
     shadow_realm_global_scope_->NotifyContextDestroyed();
     shadow_realm_global_scope_.Clear();
+
     self_.Clear();
   }
 
@@ -251,10 +254,11 @@ class PreloadRealmLifetimeController
   bool is_initiator_worker_or_worklet_;
   blink::Member<blink::ShadowRealmGlobalScope> shadow_realm_global_scope_;
   blink::Member<blink::ScriptState> shadow_realm_script_state_;
-  blink::Persistent<PreloadRealmLifetimeController> self_;
 
   std::unique_ptr<base::ProcessMetrics> metrics_;
-  raw_ptr<blink::WebServiceWorkerContextProxy> proxy_;
+  raw_ptr<ServiceWorkerData> service_worker_data_;
+
+  blink::Persistent<PreloadRealmLifetimeController> self_;
 };
 
 }  // namespace
@@ -285,15 +289,15 @@ v8::MaybeLocal<v8::Context> GetPreloadRealmContext(
   return v8::MaybeLocal<v8::Context>();
 }
 
-blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy(
+electron::ServiceWorkerData* GetServiceWorkerData(
     v8::Local<v8::Context> context) {
   auto* controller = PreloadRealmLifetimeController::From(context);
-  return controller ? controller->GetServiceWorkerProxy() : nullptr;
+  return controller ? controller->service_worker_data() : nullptr;
 }
 
 v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
     v8::Local<v8::Context> initiator_context,
-    blink::WebServiceWorkerContextProxy* proxy) {
+    electron::ServiceWorkerData* service_worker_data) {
   v8::Isolate* isolate = initiator_context->GetIsolate();
   blink::ScriptState* initiator_script_state =
       blink::ScriptState::MaybeFrom(isolate, initiator_context);
@@ -313,7 +317,6 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
       shadow_realm_global_scope->GetWrapperTypeInfo();
 
   // Create a new v8::Context.
-  // v8::ExtensionConfiguration* extension_configuration = nullptr;
   // Initialize V8 extensions before creating the context.
   v8::ExtensionConfiguration extension_configuration =
       blink::ScriptController::ExtensionsFor(shadow_realm_global_scope);
@@ -350,7 +353,7 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
   // ShadowRealmGlobalScope and the ScriptState.
   blink::MakeGarbageCollected<PreloadRealmLifetimeController>(
       initiator_execution_context, initiator_script_state,
-      shadow_realm_global_scope, script_state, proxy);
+      shadow_realm_global_scope, script_state, service_worker_data);
 
   return context;
 }

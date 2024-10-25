@@ -36,6 +36,8 @@ class ServiceWorkerData : public mojom::ElectronRenderer {
     return service_worker_version_id_;
   }
 
+  blink::WebServiceWorkerContextProxy* proxy() const { return proxy_; }
+
   // mojom::ElectronRenderer
   void Message(bool internal,
                const std::string& channel,

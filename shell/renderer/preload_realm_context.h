@@ -7,8 +7,8 @@
 
 #include "v8/include/v8-forward.h"
 
-namespace blink {
-class WebServiceWorkerContextProxy;
+namespace electron {
+class ServiceWorkerData;
 }
 
 namespace electron::preload_realm {
@@ -20,14 +20,14 @@ v8::MaybeLocal<v8::Context> GetInitiatorContext(v8::Local<v8::Context> context);
 v8::MaybeLocal<v8::Context> GetPreloadRealmContext(
     v8::Local<v8::Context> context);
 
-// Get service worker proxy given the preload realm context.
-blink::WebServiceWorkerContextProxy* GetServiceWorkerProxy(
+// Get service worker data given the preload realm context.
+electron::ServiceWorkerData* GetServiceWorkerData(
     v8::Local<v8::Context> context);
 
 // Create
 v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
     v8::Local<v8::Context> initiator_context,
-    blink::WebServiceWorkerContextProxy* proxy);
+    electron::ServiceWorkerData* service_worker_data);
 
 }  // namespace electron::preload_realm
 
