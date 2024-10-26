@@ -147,11 +147,9 @@ ElectronApiSWIPCHandlerImpl::MakeIPCEvent(v8::Isolate* isolate, bool internal) {
   gin_helper::Dictionary dict(isolate, event_object);
   dict.Set("type", "service-worker");
   dict.Set("versionId", version_id_);
-  // TODO: should this be GetProcess()->GetID()?
   dict.Set("processId", render_process_host_->GetID());
 
   // Set session to provide context for getting preloads
-  // TODO: maybe there's a better way to design this
   dict.Set("session", GetSession());
 
   if (internal)

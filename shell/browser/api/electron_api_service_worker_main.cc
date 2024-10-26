@@ -28,7 +28,7 @@
 #include "shell/common/gin_helper/object_template_builder.h"
 #include "shell/common/gin_helper/promise.h"
 #include "shell/common/node_includes.h"
-#include "shell/common/v8_value_serializer.h"
+#include "shell/common/v8_util.h"
 
 namespace {
 
@@ -90,9 +90,6 @@ ServiceWorkerMain::ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
                                      int64_t version_id,
                                      const ServiceWorkerKey& key)
     : version_id_(version_id), key_(key), service_worker_context_(sw_context) {
-  // Ensure SW is live when initialized
-  DCHECK(GetLiveVersion(service_worker_context_, version_id_));
-
   GetVersionIdMap().emplace(key_, this);
   InvalidateVersionInfo();
 }
@@ -298,9 +295,7 @@ gin::Handle<ServiceWorkerMain> ServiceWorkerMain::From(
   if (service_worker)
     return gin::CreateHandle(isolate, service_worker);
 
-  // TODO: should allow creation as long as live version exists
-  if (!sw_context->IsLiveStartingServiceWorker(version_id) &&
-      !sw_context->IsLiveRunningServiceWorker(version_id)) {
+  if (!GetLiveVersion(sw_context, version_id)) {
     return gin::Handle<ServiceWorkerMain>();
   }
 

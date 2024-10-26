@@ -17,7 +17,7 @@
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/event.h"
 #include "shell/common/gin_helper/reply_channel.h"
-#include "shell/common/v8_value_serializer.h"
+#include "shell/common/v8_util.h"
 
 namespace electron {
 
