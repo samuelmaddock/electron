@@ -162,13 +162,14 @@ describe('ServiceWorkerMain module', () => {
   });
 
   describe('"running-status-changed" event', () => {
-    // TODO(samuelmaddock): crash with version_info not valid
-    it.skip('does not crash on simultaneous destruction', async () => {
+    it('handles when content::ServiceWorkerVersion has been destroyed', async () => {
       loadWorkerScript();
       const serviceWorker = await waitForServiceWorker('running');
+      // This delay is a precondition for a crash that occurred
       await new Promise<void>((resolve) => setTimeout(resolve, 50));
       serviceWorker?._stopWorker();
       wc.destroy();
+      await waitUntil(() => serviceWorker.isDestroyed());
     });
   });
 

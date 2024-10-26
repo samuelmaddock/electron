@@ -149,9 +149,15 @@ void ServiceWorkerMain::InvalidateVersionInfo() {
     return;
 
   auto version_info = GetLiveVersionInfo(service_worker_context_, version_id_);
-  CHECK(version_info);
-  version_info_ =
-      std::make_unique<content::ServiceWorkerVersionBaseInfo>(*version_info);
+  if (version_info) {
+    version_info_ =
+        std::make_unique<content::ServiceWorkerVersionBaseInfo>(*version_info);
+  } else {
+    // When ServiceWorkerContextCore::RemoveLiveVersion is called, it posts a
+    // task to notify that the service worker has stopped. At this point, the
+    // live version will no longer exist.
+    Destroy();
+  }
 }
 
 void ServiceWorkerMain::OnRunningStatusChanged() {
