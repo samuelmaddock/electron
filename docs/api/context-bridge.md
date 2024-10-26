@@ -65,6 +65,9 @@ The `contextBridge` module has the following methods:
 
 * `code` String
 
+Returns `any` - A copy of the resulting value from evaluating the code in the main world.
+[Refer to the table](#parameter--error--return-type-support) on how values are copied between worlds.
+
 ## Usage
 
 ### API
