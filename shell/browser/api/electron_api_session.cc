@@ -1081,6 +1081,13 @@ void Session::RegisterPreloadScript(gin_helper::ErrorThrower thrower,
     return;
   }
 
+  if (!new_preload_script.file_path.IsAbsolute()) {
+    thrower.ThrowError(
+        base::StringPrintf("Preload script must have absolute path: %s",
+                           new_preload_script.file_path.value().c_str()));
+    return;
+  }
+
   preload_scripts.push_back(new_preload_script);
 }
 
