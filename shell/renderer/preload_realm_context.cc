@@ -295,7 +295,7 @@ electron::ServiceWorkerData* GetServiceWorkerData(
   return controller ? controller->service_worker_data() : nullptr;
 }
 
-v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
+void OnCreatePreloadableV8Context(
     v8::Local<v8::Context> initiator_context,
     electron::ServiceWorkerData* service_worker_data) {
   v8::Isolate* isolate = initiator_context->GetIsolate();
@@ -354,8 +354,6 @@ v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
   blink::MakeGarbageCollected<PreloadRealmLifetimeController>(
       initiator_execution_context, initiator_script_state,
       shadow_realm_global_scope, script_state, service_worker_data);
-
-  return context;
 }
 
 }  // namespace electron::preload_realm

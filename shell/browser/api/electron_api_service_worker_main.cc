@@ -91,8 +91,7 @@ ServiceWorkerMain::ServiceWorkerMain(content::ServiceWorkerContext* sw_context,
                                      const ServiceWorkerKey& key)
     : version_id_(version_id), key_(key), service_worker_context_(sw_context) {
   // Ensure SW is live when initialized
-  DCHECK(service_worker_context_->IsLiveStartingServiceWorker(version_id) ||
-         service_worker_context_->IsLiveRunningServiceWorker(version_id));
+  DCHECK(GetLiveVersion(service_worker_context_, version_id_));
 
   GetVersionIdMap().emplace(key_, this);
   InvalidateVersionInfo();
@@ -264,7 +263,6 @@ void ServiceWorkerMain::FinishExternalRequest(v8::Isolate* isolate,
     return;
   }
 
-  // content::ServiceWorkerExternalRequestResult finish_result =
   service_worker_context_->FinishedExternalRequest(version_id_, request_uuid);
 }
 

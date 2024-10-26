@@ -25,7 +25,7 @@ electron::ServiceWorkerData* GetServiceWorkerData(
     v8::Local<v8::Context> context);
 
 // Create
-v8::MaybeLocal<v8::Context> OnCreatePreloadableV8Context(
+void OnCreatePreloadableV8Context(
     v8::Local<v8::Context> initiator_context,
     electron::ServiceWorkerData* service_worker_data);
 

@@ -11,13 +11,8 @@
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/render_process_host_observer.h"
 #include "electron/shell/common/api/api.mojom.h"
-#include "mojo/public/cpp/bindings/associated_receiver.h"
-
-// TODO: organize & forward refs
-#include "gin/data_object_builder.h"
 #include "gin/handle.h"
-#include "shell/browser/javascript_environment.h"
-#include "shell/common/gin_helper/dictionary.h"
+#include "mojo/public/cpp/bindings/associated_receiver.h"
 #include "shell/common/gin_helper/event.h"
 
 namespace content {
@@ -65,9 +60,7 @@ class ElectronApiSWIPCHandlerImpl : public mojom::ElectronApiIPC,
                    blink::CloneableMessage arguments,
                    MessageSyncCallback callback) override;
   void MessageHost(const std::string& channel,
-                   blink::CloneableMessage arguments) override {
-    // NOTE: Unused; service workers have no <webview>
-  }
+                   blink::CloneableMessage arguments) override;
 
   base::WeakPtr<ElectronApiSWIPCHandlerImpl> GetWeakPtr() {
     return weak_factory_.GetWeakPtr();

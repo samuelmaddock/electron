@@ -12,6 +12,8 @@
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
 #include "shell/browser/api/electron_api_session.h"
 #include "shell/browser/electron_browser_context.h"
+#include "shell/browser/javascript_environment.h"
+#include "shell/common/gin_helper/dictionary.h"
 
 namespace electron {
 
@@ -118,6 +120,12 @@ void ElectronApiSWIPCHandlerImpl::MessageSync(bool internal,
     session->MessageSync(event, channel, std::move(arguments),
                          std::move(callback));
   }
+}
+
+void ElectronApiSWIPCHandlerImpl::MessageHost(
+    const std::string& channel,
+    blink::CloneableMessage arguments) {
+  NOTIMPLEMENTED();  // Service workers have no <webview>
 }
 
 ElectronBrowserContext* ElectronApiSWIPCHandlerImpl::GetBrowserContext() {

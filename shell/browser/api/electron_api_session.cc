@@ -1679,7 +1679,6 @@ void Session::FillObjectTemplate(v8::Isolate* isolate,
       .SetMethod("downloadURL", &Session::DownloadURL)
       .SetMethod("createInterruptedDownload",
                  &Session::CreateInterruptedDownload)
-
       .SetMethod("registerPreloadScript", &Session::RegisterPreloadScript)
       .SetMethod("unregisterPreloadScript", &Session::UnregisterPreloadScript)
       .SetMethod("getPreloadScripts", &Session::GetPreloadScripts)

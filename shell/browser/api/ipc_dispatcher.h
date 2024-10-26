@@ -21,6 +21,8 @@
 
 namespace electron {
 
+// Handles dispatching IPCs to JS.
+// See ipc-dispatch.ts for JS listeners.
 template <typename T>
 class IpcDispatcher {
  public:
