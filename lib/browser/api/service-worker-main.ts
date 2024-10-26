@@ -23,7 +23,7 @@ ServiceWorkerMain.prototype.send = function (channel, ...args) {
 };
 
 ServiceWorkerMain.prototype.startTask = function () {
-  // TODO(samuelmaddock): make timeout configurable
+  // TODO(samuelmaddock): maybe make timeout configurable in the future
   const hasTimeout = false;
   const { id, ok } = this._startExternalRequest(hasTimeout);
 
