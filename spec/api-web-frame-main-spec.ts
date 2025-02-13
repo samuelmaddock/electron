@@ -12,7 +12,7 @@ import { emittedNTimes } from './lib/events-helpers';
 import { defer, ifit, listen, waitUntil } from './lib/spec-helpers';
 import { closeAllWindows } from './lib/window-helpers';
 
-describe('webFrameMain module', () => {
+describe.only('webFrameMain module', () => {
   const fixtures = path.resolve(__dirname, 'fixtures');
   const subframesPath = path.join(fixtures, 'sub-frames');
 
@@ -402,6 +402,16 @@ describe('webFrameMain module', () => {
       await expect(unloadPromise).to.eventually.be.fulfilled();
     });
 
+    // TODO: add test which creates speculative frame from will-frame-navigate
+    // then does ???
+    // 1. hold existing frame
+    // 2. hold frame from speculative will-frame-navigate
+    // 3. ensure once speculative frame is deleted that it doesn't crash
+    // need to undo changes to create test
+
+    // TODO: check that cross-origin details.frame in 'will-frame-navigate'
+    // is not in speculative lifecycle state via frame.getLifecycleStateForTest
+    
     it('disposes detached frame after cross-origin navigation', async () => {
       w = new BrowserWindow({
         show: false,

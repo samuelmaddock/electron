@@ -1755,6 +1755,8 @@ void WebContents::OnBackgroundColorChanged() {
 void WebContents::RenderFrameCreated(
     content::RenderFrameHost* render_frame_host) {
   HandleNewRenderFrame(render_frame_host);
+  LOG(INFO) << "WebContents::RenderFrameCreated token="
+            << render_frame_host->GetGlobalFrameToken().frame_token;
 
   // RenderFrameCreated is called for speculative frames which may not be
   // used in certain cross-origin navigations. Invoking
@@ -1767,6 +1769,9 @@ void WebContents::RenderFrameCreated(
       content::RenderFrameHostImpl::LifecycleStateImpl::kSpeculative) {
     return;
   }
+  LOG(INFO) << "WebContents::RenderFrameCreated state="
+            << content::RenderFrameHostImpl::LifecycleStateImplToString(
+                   rfh_impl->lifecycle_state());
 
   content::RenderFrameHost::LifecycleState lifecycle_state =
       render_frame_host->GetLifecycleState();
@@ -1781,6 +1786,7 @@ void WebContents::RenderFrameCreated(
 
 void WebContents::RenderFrameDeleted(
     content::RenderFrameHost* render_frame_host) {
+  LOG(INFO) << "WebContents::RenderFrameDeleted";
   // A RenderFrameHost can be deleted when:
   // - A WebContents is removed and its containing frames are disposed.
   // - An <iframe> is removed from the DOM.
@@ -1788,14 +1794,33 @@ void WebContents::RenderFrameDeleted(
   //   is swapped by content::RenderFrameHostManager.
   //
 
+  if (render_frame_host) {
+    LOG(INFO) << "WebContents::RenderFrameDeleted token="
+              << render_frame_host->GetGlobalFrameToken().frame_token;
+  }
+
   // WebFrameMain::FromRenderFrameHost(rfh) will use the RFH's FrameTreeNode ID
   // to find an existing instance of WebFrameMain. During a cross-origin
   // navigation, the deleted RFH will be the old host which was swapped out. In
   // this special case, we need to also ensure that WebFrameMain's internal RFH
   // matches before marking it as disposed.
   auto* web_frame = WebFrameMain::FromRenderFrameHost(render_frame_host);
-  if (web_frame && web_frame->render_frame_host() == render_frame_host)
-    web_frame->MarkRenderFrameDisposed();
+  if (web_frame) {
+    LOG(INFO) << "WebContents::RenderFrameDeleted found web_frame";
+    LOG(INFO) << "web_frame token = " << web_frame->frame_token_.frame_token;
+    LOG(INFO) << "rfh token = "
+              << render_frame_host->GetGlobalFrameToken().frame_token;
+    // Need to directly compare frame tokens as they can no longer be used to
+    // lookup the RFH with content::RenderFrameHost::FromFrameToken().
+    if (web_frame->frame_token_ == render_frame_host->GetGlobalFrameToken()) {
+      LOG(INFO) << "WebContents::RenderFrameDeleted global token match";
+      web_frame->MarkRenderFrameDisposed();
+    }
+    if (web_frame->render_frame_host() == render_frame_host) {
+      LOG(INFO) << "WebContents::RenderFrameDeleted found match";
+      web_frame->MarkRenderFrameDisposed();
+    }
+  }
 }
 
 void WebContents::RenderFrameHostChanged(content::RenderFrameHost* old_host,
